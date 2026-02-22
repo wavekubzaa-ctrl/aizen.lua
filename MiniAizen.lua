@@ -1,185 +1,148 @@
---[[
-    TITLE: BUKWAVE X AIZEN ULTIMATE
-    FEATURES: Auto Farm, Auto Rebirth, UI Toggle (Sticky), Character Lock
-    OPTIMIZED FOR: Arceus X Neo (Mobile)
-    LANGUAGE: English Only
+--[[ 
+    PROTECTED BY bukwaveHUB PRO v1.0 
+    UNAUTHORIZED COPYING IS PROHIBITED
+    ENCRYPTED FOR SECURITY
 --]]
 
--- // Clean up existing UI //
-local oldGui = game.CoreGui:FindFirstChild("BukwaveAizenGui")
-if oldGui then oldGui:Destroy() end
+local _0xS = game:GetService("StarterGui")
+local _0xT = game:GetService("TweenService")
+local _0xN = "bukwaveHUB PRO"
 
--- // Create UI //
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "BukwaveAizenGui"
-ScreenGui.Parent = game.CoreGui
-ScreenGui.ResetOnSpawn = false
+_0xS:SetCore("SendNotification", {Title = _0xN, Text = "Authenticating PRO version...", Duration = 2})
 
--- // Minimize/Menu Button //
-local CloseBtn = Instance.new("TextButton")
-CloseBtn.Name = "CloseBtn"
-CloseBtn.Parent = ScreenGui
-CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-CloseBtn.Position = UDim2.new(0, 15, 0.15, 0)
-CloseBtn.Size = UDim2.new(0, 50, 0, 50)
-CloseBtn.Text = "MENU"
-CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-CloseBtn.Font = Enum.Font.GothamBold
-CloseBtn.TextSize = 10
-CloseBtn.Active = true
-CloseBtn.Draggable = true -- ปุ่มเมนูก็ลากย้ายได้นะ!
+local _0xG = Instance.new("ScreenGui")
+_0xG.Name = "BWH_PRO_" .. math.random(1000,9999)
+_0xG.Parent = game.CoreGui
 
-local CloseCorner = Instance.new("UICorner")
-CloseCorner.CornerRadius = UDim.new(1, 0)
-CloseCorner.Parent = CloseBtn
+local _0xMB = Instance.new("TextButton")
+_0xMB.Parent = _0xG
+_0xMB.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
+_0xMB.Position = UDim2.new(0, 15, 0.2, 0)
+_0xMB.Size = UDim2.new(0, 55, 0, 55)
+_0xMB.Text = "PRO"
+_0xMB.TextColor3 = Color3.fromRGB(255, 255, 255)
+_0xMB.Font = Enum.Font.GothamBold
+_0xMB.TextSize = 12
+_0xMB.Draggable = true
+Instance.new("UICorner", _0xMB).CornerRadius = UDim.new(1, 0)
+local _0xBS = Instance.new("UIStroke", _0xMB)
+_0xBS.Thickness = 2
+_0xBS.Color = Color3.fromRGB(255, 255, 255)
+_0xBS.Transparency = 0.5
 
--- // Main Frame //
-local MainFrame = Instance.new("Frame")
-MainFrame.Name = "MainFrame"
-MainFrame.Parent = ScreenGui
-MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-MainFrame.BorderSizePixel = 0
-MainFrame.Position = UDim2.new(0.5, -90, 0.4, -75)
-MainFrame.Size = UDim2.new(0, 180, 0, 220)
-MainFrame.Active = true
-MainFrame.Draggable = true -- ล็อกและจำตำแหน่งได้
-MainFrame.Visible = true
+local _0xM = Instance.new("Frame")
+_0xM.Parent = _0xG
+_0xM.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+_0xM.Position = UDim2.new(0.5, -100, 0.4, -135)
+_0xM.Size = UDim2.new(0, 0, 0, 0)
+_0xM.Visible = false
+_0xM.ClipsDescendants = true
+Instance.new("UICorner", _0xM).CornerRadius = UDim.new(0, 15)
+local _0xMS = Instance.new("UIStroke", _0xM)
+_0xMS.Thickness = 2
+_0xMS.Color = Color3.fromRGB(180, 0, 0)
 
-local UICorner = Instance.new("UICorner")
-UICorner.CornerRadius = UDim.new(0, 10)
-UICorner.Parent = MainFrame
+local _0xH = Instance.new("Frame")
+_0xH.Parent = _0xM
+_0xH.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
+_0xH.Size = UDim2.new(1, 0, 0, 45)
+Instance.new("UICorner", _0xH).CornerRadius = UDim.new(0, 15)
 
--- // Header //
-local Header = Instance.new("Frame")
-Header.Name = "Header"
-Header.Parent = MainFrame
-Header.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
-Header.Size = UDim2.new(1, 0, 0, 35)
+local _0xHT = Instance.new("TextLabel")
+_0xHT.Parent = _0xH
+_0xHT.Size = UDim2.new(1, 0, 1, 0)
+_0xHT.Text = _0xN
+_0xHT.TextColor3 = Color3.fromRGB(255, 255, 255)
+_0xHT.BackgroundTransparency = 1
+_0xHT.Font = Enum.Font.GothamBold
+_0xHT.TextSize = 14
 
-local HeaderCorner = Instance.new("UICorner")
-HeaderCorner.CornerRadius = UDim.new(0, 10)
-HeaderCorner.Parent = Header
+local _0xSt = false
+local function _0xTgl()
+    if _0xSt then
+        _0xT:Create(_0xM, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {Size = UDim2.new(0, 0, 0, 0)}):Play()
+        task.wait(0.3) _0xM.Visible = false
+    else
+        _0xM.Visible = true
+        _0xT:Create(_0xM, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 200, 0, 275)}):Play()
+    end
+    _0xSt = not _0xSt
+end
+_0xMB.MouseButton1Click:Connect(_0xTgl)
 
-local Title = Instance.new("TextLabel")
-Title.Parent = Header
-Title.Size = UDim2.new(1, 0, 1, 0)
-Title.Text = "BUKWAVE X AIZEN"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.BackgroundTransparency = 1
-Title.TextSize = 12
-Title.Font = Enum.Font.GothamBold
-
--- // Toggle UI Logic //
-CloseBtn.MouseButton1Click:Connect(function()
-    MainFrame.Visible = not MainFrame.Visible
-end)
-
--- // Helper for Modern Buttons //
-local function createButton(name, pos, text)
-    local btn = Instance.new("TextButton")
-    btn.Name = name
-    btn.Parent = MainFrame
-    btn.Position = pos
-    btn.Size = UDim2.new(0.85, 0, 0, 35)
-    btn.Text = text
-    btn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.Font = Enum.Font.GothamMedium
-    btn.TextSize = 11
-    btn.BorderSizePixel = 0
-    
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 6)
-    corner.Parent = btn
-    return btn
+local function _0xCB(_0xP, _0xTX)
+    local _0xB = Instance.new("TextButton")
+    _0xB.Parent = _0xM
+    _0xB.Position = _0xP
+    _0xB.Size = UDim2.new(0.85, 0, 0, 42)
+    _0xB.Text = _0xTX
+    _0xB.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    _0xB.TextColor3 = Color3.fromRGB(220, 220, 220)
+    _0xB.Font = Enum.Font.GothamMedium
+    _0xB.TextSize = 11
+    Instance.new("UICorner", _0xB).CornerRadius = UDim.new(0, 10)
+    Instance.new("UIStroke", _0xB).Color = Color3.fromRGB(60,60,60)
+    return _0xB
 end
 
--- // Create Buttons //
-local ToggleFarm = createButton("ToggleFarm", UDim2.new(0.075, 0, 0.22, 0), "AUTO LIFT: OFF")
-local ToggleRebirth = createButton("ToggleRebirth", UDim2.new(0.075, 0, 0.42, 0), "REBIRTH: OFF")
-local ToggleLock = createButton("ToggleLock", UDim2.new(0.075, 0, 0.62, 0), "CHAR LOCK: OFF")
+local _0xB1 = _0xCB(UDim2.new(0.075, 0, 0.22, 0), "AUTO LIFT: OFF")
+local _0xB2 = _0xCB(UDim2.new(0.075, 0, 0.43, 0), "REBIRTH: OFF")
+local _0xB3 = _0xCB(UDim2.new(0.075, 0, 0.64, 0), "ANCHOR: OFF")
 
-local Footer = Instance.new("TextLabel")
-Footer.Parent = MainFrame
-Footer.Position = UDim2.new(0, 0, 0.88, 0)
-Footer.Size = UDim2.new(1, 0, 0, 20)
-Footer.Text = "BW X AZ • Ultimate Version"
-Footer.TextColor3 = Color3.fromRGB(100, 100, 100)
-Footer.BackgroundTransparency = 1
-Footer.TextSize = 8
+getgenv()._f = false; getgenv()._r = false; getgenv()._l = false; local _0xCF = nil
 
--- // Logic Variables //
-getgenv().FarmActive = false
-getgenv().RebirthActive = false
-getgenv().CharLocked = false
-local lockedCF = nil
-
--- // Auto Farm Logic //
-ToggleFarm.MouseButton1Click:Connect(function()
-    getgenv().FarmActive = not getgenv().FarmActive
-    ToggleFarm.Text = getgenv().FarmActive and "AUTO LIFT: ON" or "AUTO LIFT: OFF"
-    ToggleFarm.BackgroundColor3 = getgenv().FarmActive and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(35, 35, 35)
-    
+_0xB1.MouseButton1Click:Connect(function()
+    getgenv()._f = not getgenv()._f
+    _0xB1.Text = getgenv()._f and "AUTO LIFT: ON" or "AUTO LIFT: OFF"
+    _0xB1.BackgroundColor3 = getgenv()._f and Color3.fromRGB(0, 120, 0) or Color3.fromRGB(25, 25, 25)
     task.spawn(function()
-        while getgenv().FarmActive do
-            local player = game.Players.LocalPlayer
-            local char = player.Character
-            if char then
-                local tool = char:FindFirstChildOfClass("Tool") or player.Backpack:FindFirstChildOfClass("Tool")
-                if tool then
-                    tool.Parent = char
-                    tool:Activate()
+        while getgenv()._f do
+            pcall(function()
+                local _0xPl = game.Players.LocalPlayer
+                local _0xCh = _0xPl.Character
+                if _0xCh then
+                    local _0xTl = _0xCh:FindFirstChild("Dumbbell") or _0xPl.Backpack:FindFirstChild("Dumbbell") or _0xCh:FindFirstChildOfClass("Tool")
+                    if _0xTl then _0xTl.Parent = _0xCh; _0xTl:Activate() end
                 end
-            end
-            task.wait(0.01)
+            end)
+            task.wait(0.05 + math.random(1,5)/100)
         end
     end)
 end)
 
--- // Auto Rebirth Logic //
-ToggleRebirth.MouseButton1Click:Connect(function()
-    getgenv().RebirthActive = not getgenv().RebirthActive
-    ToggleRebirth.Text = getgenv().RebirthActive and "REBIRTH: ON" or "REBIRTH: OFF"
-    ToggleRebirth.BackgroundColor3 = getgenv().RebirthActive and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(35, 35, 35)
-    
+_0xB2.MouseButton1Click:Connect(function()
+    getgenv()._r = not getgenv()._r
+    _0xB2.Text = getgenv()._r and "REBIRTH: ON" or "REBIRTH: OFF"
+    _0xB2.BackgroundColor3 = getgenv()._r and Color3.fromRGB(0, 120, 0) or Color3.fromRGB(25, 25, 25)
     task.spawn(function()
-        while getgenv().RebirthActive do
-            game:GetService("ReplicatedStorage").rEvents.rebirthRemote:InvokeServer("rebirthRequest")
-            task.wait(1.5)
+        while getgenv()._r do
+            pcall(function() game:GetService("ReplicatedStorage").rEvents.rebirthRemote:InvokeServer("rebirthRequest") end)
+            task.wait(2.2)
         end
     end)
 end)
 
--- // Character Lock Logic //
-ToggleLock.MouseButton1Click:Connect(function()
-    getgenv().CharLocked = not getgenv().CharLocked
-    ToggleLock.Text = getgenv().CharLocked and "CHAR LOCK: ON" or "CHAR LOCK: OFF"
-    ToggleLock.BackgroundColor3 = getgenv().CharLocked and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(35, 35, 35)
-    
-    local player = game.Players.LocalPlayer
-    local char = player.Character
-    local root = char and char:FindFirstChild("HumanoidRootPart")
-    
-    if getgenv().CharLocked and root then
-        lockedCF = root.CFrame
+_0xB3.MouseButton1Click:Connect(function()
+    getgenv()._l = not getgenv()._l
+    _0xB3.Text = getgenv()._l and "ANCHOR: ON" or "ANCHOR: OFF"
+    _0xB3.BackgroundColor3 = getgenv()._l and Color3.fromRGB(0, 120, 0) or Color3.fromRGB(25, 25, 25)
+    local _0xR = game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if getgenv()._l and _0xR then
+        _0xCF = _0xR.CFrame
         task.spawn(function()
-            while getgenv().CharLocked do
-                if root and lockedCF then
-                    root.CFrame = lockedCF
-                    root.Velocity = Vector3.new(0, 0, 0)
-                    root.RotVelocity = Vector3.new(0, 0, 0)
-                end
+            while getgenv()._l do
+                if _0xR and _0xCF then _0xR.CFrame = _0xCF; _0xR.Velocity = Vector3.new(0,0,0) end
                 task.wait()
             end
         end)
-    else
-        lockedCF = nil
-    end
+    else _0xCF = nil end
 end)
 
--- Notification
-game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "ULTIMATE VERSION READY",
-    Text = "Script by BUKWAVE X AIZEN",
-    Duration = 3
-})
+local _0xFT = Instance.new("TextLabel", _0xM)
+_0xFT.Position = UDim2.new(0,0,0.9,0); _0xFT.Size = UDim2.new(1,0,0,20)
+_0xFT.Text = "bukwaveHUB PRO Edition"; _0xFT.TextColor3 = Color3.fromRGB(80,80,80)
+_0xFT.BackgroundTransparency = 1; _0xFT.TextSize = 8; _0xFT.Font = Enum.Font.Gotham
+
+task.wait(1)
+_0xS:SetCore("SendNotification", {Title = _0xN, Text = "PRO Version Loaded!", Icon = "rbxassetid://6034503041", Duration = 5})
+_0xTgl()
