@@ -1,7 +1,8 @@
 --[[
     TITLE: BUKWAVE X AIZEN ULTIMATE
-    FEATURES: Auto Farm, Auto Rebirth, UI Toggle (Draggable), Character Lock
+    FEATURES: Auto Farm, Auto Rebirth, UI Toggle (Sticky), Character Lock
     OPTIMIZED FOR: Arceus X Neo (Mobile)
+    LANGUAGE: English Only
 --]]
 
 -- // Clean up existing UI //
@@ -14,13 +15,13 @@ ScreenGui.Name = "BukwaveAizenGui"
 ScreenGui.Parent = game.CoreGui
 ScreenGui.ResetOnSpawn = false
 
--- // Minimize/Menu Button (The red circle button) //
+-- // Minimize/Menu Button //
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Name = "CloseBtn"
 CloseBtn.Parent = ScreenGui
 CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
 CloseBtn.Position = UDim2.new(0, 15, 0.15, 0)
-CloseBtn.Size = UDim2.new(0, 45, 0, 45)
+CloseBtn.Size = UDim2.new(0, 50, 0, 50)
 CloseBtn.Text = "MENU"
 CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 CloseBtn.Font = Enum.Font.GothamBold
@@ -36,12 +37,12 @@ CloseCorner.Parent = CloseBtn
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = ScreenGui
-MainFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 MainFrame.BorderSizePixel = 0
 MainFrame.Position = UDim2.new(0.5, -90, 0.4, -75)
 MainFrame.Size = UDim2.new(0, 180, 0, 220)
 MainFrame.Active = true
-MainFrame.Draggable = true -- เมนูหลักลากย้ายและล็อกตำแหน่งเดิมไว้ได้
+MainFrame.Draggable = true -- ล็อกและจำตำแหน่งได้
 MainFrame.Visible = true
 
 local UICorner = Instance.new("UICorner")
@@ -52,7 +53,7 @@ UICorner.Parent = MainFrame
 local Header = Instance.new("Frame")
 Header.Name = "Header"
 Header.Parent = MainFrame
-Header.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+Header.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
 Header.Size = UDim2.new(1, 0, 0, 35)
 
 local HeaderCorner = Instance.new("UICorner")
@@ -81,10 +82,10 @@ local function createButton(name, pos, text)
     btn.Position = pos
     btn.Size = UDim2.new(0.85, 0, 0, 35)
     btn.Text = text
-    btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    btn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     btn.Font = Enum.Font.GothamMedium
-    btn.TextSize = 12
+    btn.TextSize = 11
     btn.BorderSizePixel = 0
     
     local corner = Instance.new("UICorner")
@@ -93,19 +94,19 @@ local function createButton(name, pos, text)
     return btn
 end
 
--- // Create Functionality Buttons //
+-- // Create Buttons //
 local ToggleFarm = createButton("ToggleFarm", UDim2.new(0.075, 0, 0.22, 0), "AUTO LIFT: OFF")
 local ToggleRebirth = createButton("ToggleRebirth", UDim2.new(0.075, 0, 0.42, 0), "REBIRTH: OFF")
-local ToggleLock = createButton("ToggleLock", UDim2.new(0.075, 0, 0.62, 0), "CHARACTER LOCK: OFF")
+local ToggleLock = createButton("ToggleLock", UDim2.new(0.075, 0, 0.62, 0), "CHAR LOCK: OFF")
 
 local Footer = Instance.new("TextLabel")
 Footer.Parent = MainFrame
 Footer.Position = UDim2.new(0, 0, 0.88, 0)
 Footer.Size = UDim2.new(1, 0, 0, 20)
-Footer.Text = "B W X A • Safe Version"
-Footer.TextColor3 = Color3.fromRGB(80, 80, 80)
+Footer.Text = "BW X AZ • Ultimate Version"
+Footer.TextColor3 = Color3.fromRGB(100, 100, 100)
 Footer.BackgroundTransparency = 1
-Footer.TextSize = 9
+Footer.TextSize = 8
 
 -- // Logic Variables //
 getgenv().FarmActive = false
@@ -117,7 +118,7 @@ local lockedCF = nil
 ToggleFarm.MouseButton1Click:Connect(function()
     getgenv().FarmActive = not getgenv().FarmActive
     ToggleFarm.Text = getgenv().FarmActive and "AUTO LIFT: ON" or "AUTO LIFT: OFF"
-    ToggleFarm.BackgroundColor3 = getgenv().FarmActive and Color3.fromRGB(0, 120, 0) or Color3.fromRGB(30, 30, 30)
+    ToggleFarm.BackgroundColor3 = getgenv().FarmActive and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(35, 35, 35)
     
     task.spawn(function()
         while getgenv().FarmActive do
@@ -139,7 +140,7 @@ end)
 ToggleRebirth.MouseButton1Click:Connect(function()
     getgenv().RebirthActive = not getgenv().RebirthActive
     ToggleRebirth.Text = getgenv().RebirthActive and "REBIRTH: ON" or "REBIRTH: OFF"
-    ToggleRebirth.BackgroundColor3 = getgenv().RebirthActive and Color3.fromRGB(0, 120, 0) or Color3.fromRGB(30, 30, 30)
+    ToggleRebirth.BackgroundColor3 = getgenv().RebirthActive and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(35, 35, 35)
     
     task.spawn(function()
         while getgenv().RebirthActive do
@@ -149,11 +150,11 @@ ToggleRebirth.MouseButton1Click:Connect(function()
     end)
 end)
 
--- // Character Position Lock Logic //
+-- // Character Lock Logic //
 ToggleLock.MouseButton1Click:Connect(function()
     getgenv().CharLocked = not getgenv().CharLocked
     ToggleLock.Text = getgenv().CharLocked and "CHAR LOCK: ON" or "CHAR LOCK: OFF"
-    ToggleLock.BackgroundColor3 = getgenv().CharLocked and Color3.fromRGB(0, 120, 0) or Color3.fromRGB(30, 30, 30)
+    ToggleLock.BackgroundColor3 = getgenv().CharLocked and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(35, 35, 35)
     
     local player = game.Players.LocalPlayer
     local char = player.Character
@@ -176,9 +177,9 @@ ToggleLock.MouseButton1Click:Connect(function()
     end
 end)
 
--- Initial Notification
+-- Notification
 game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "ULTIMATE LOADED",
-    Text = "Menu and Character lock active.",
+    Title = "ULTIMATE VERSION READY",
+    Text = "Script by BUKWAVE X AIZEN",
     Duration = 3
 })
