@@ -1,7 +1,7 @@
 --[[ 
-    PROJECT: ELITE HAMBURG (V42 - SNIPER & G36 FOCUS)
-    FEATURES: Precision Predict, Weapon Modes, Distance Tracker, Auto-Arrest
-    LOGIC: Specialized Bullet Velocity for Sniper and G36
+    PROJECT: ELITE HAMBURG (V43 - BUG FIX & STREAMLINED)
+    FEATURES: Sniper/G36 Aimbot, Fixed ESP Colors, Independent Vehicle Boost, No Fog, Auto-Arrest
+    FIXES: Separated Colors for Police/Criminals, Removed Robbery ESP & Fly
 --]]
 
 if not game:IsLoaded() then game.Loaded:Wait() end
@@ -14,47 +14,42 @@ local _VIM = game:GetService("VirtualInputManager")
 local _INPUT = game:GetService("UserInputService")
 
 getgenv().EliteConfig = {
-    -- Combat & Prediction
+    -- Combat
     AimEnabled = false,
     AutoShoot = false,
     AimPart = "HumanoidRootPart", 
     FOV = 180,
-    CurrentMode = "G36", -- สลับระหว่าง "G36" และ "Sniper"
+    CurrentMode = "G36",
     BulletSpeed = 950,
-    DropComp = 0.1,
     
-    -- Radar & ESP
-    ESPEnabled = false,
-    RobberyESP = false,
+    -- ESP
+    ESPEnabled = true,
     RadarMode = "All",
     
     -- Police & Utility
     ArrestAssist = false,
     InteractRange = 12,
-    Flight = false,
-    FlySpeed = 50,
     VehicleBoost = false,
-    SpeedMult = 22,
     NoFog = false,
+    SpeedMult = 25,
     
-    ThemeColor = Color3.fromRGB(255, 50, 50) -- สีแดงเข้ม (Sniper Focus)
+    ThemeColor = Color3.fromRGB(0, 255, 200)
 }
 
--- // Weapon Profile Data //
 local WeaponSettings = {
-    ["G36"] = {Speed = 950, Drop = 0.12, Color = Color3.fromRGB(255, 200, 0)},
-    ["Sniper"] = {Speed = 2500, Drop = 0.05, Color = Color3.fromRGB(255, 50, 50)}
+    ["G36"] = {Speed = 950, Color = Color3.fromRGB(0, 255, 200)},
+    ["Sniper"] = {Speed = 2500, Color = Color3.fromRGB(255, 50, 50)}
 }
 
 -- // UI System //
 local _G = Instance.new("ScreenGui", game.CoreGui)
-_G.Name = "Elite_V42_Final"
+_G.Name = "Elite_V43_Final"
 
 local _MainBtn = Instance.new("TextButton", _G)
-_MainBtn.Size = UDim2.new(0, 75, 0, 75)
+_MainBtn.Size = UDim2.new(0, 70, 0, 70)
 _MainBtn.Position = UDim2.new(0, 20, 0.4, 0)
-_MainBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-_MainBtn.Text = "ELITE\nV42"
+_MainBtn.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+_MainBtn.Text = "ELITE\nV43"
 _MainBtn.TextColor3 = getgenv().EliteConfig.ThemeColor
 _MainBtn.Font = Enum.Font.GothamBold
 _MainBtn.Draggable = true
@@ -64,17 +59,17 @@ _Stroke.Color = getgenv().EliteConfig.ThemeColor
 _Stroke.Thickness = 2
 
 local _Panel = Instance.new("Frame", _MainBtn)
-_Panel.Size = UDim2.new(0, 240, 0, 500)
-_Panel.Position = UDim2.new(1, 15, 0, -210)
+_Panel.Size = UDim2.new(0, 220, 0, 420)
+_Panel.Position = UDim2.new(1, 15, 0, -175)
 _Panel.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 _Panel.Visible = false
 Instance.new("UICorner", _Panel)
 
 local function AddBtn(text, y, callback, color)
     local b = Instance.new("TextButton", _Panel)
-    b.Size = UDim2.new(0.9, 0, 0, 32)
+    b.Size = UDim2.new(0.9, 0, 0, 35)
     b.Position = UDim2.new(0.05, 0, 0, y)
-    b.BackgroundColor3 = color or Color3.fromRGB(35, 35, 35)
+    b.BackgroundColor3 = color or Color3.fromRGB(40, 40, 45)
     b.Text = text; b.TextColor3 = Color3.new(1, 1, 1)
     b.Font = Enum.Font.SourceSansBold
     Instance.new("UICorner", b)
@@ -82,71 +77,80 @@ local function AddBtn(text, y, callback, color)
     return b
 end
 
--- // ฟังก์ชันควบคุมหน้าเมนู //
-local aimBtn = AddBtn("AIMLOCK: OFF", 20, function(b) 
+-- // UI Buttons //
+AddBtn("AIMLOCK: OFF", 20, function(b) 
     getgenv().EliteConfig.AimEnabled = not getgenv().EliteConfig.AimEnabled
     b.Text = getgenv().EliteConfig.AimEnabled and "AIMLOCK: ON" or "AIMLOCK: OFF"
+    b.BackgroundColor3 = getgenv().EliteConfig.AimEnabled and Color3.fromRGB(0, 120, 0) or Color3.fromRGB(40, 40, 45)
 end)
 
-local modeBtn = AddBtn("MODE: G36", 60, function(b)
-    if getgenv().EliteConfig.CurrentMode == "G36" then
-        getgenv().EliteConfig.CurrentMode = "Sniper"
-    else
-        getgenv().EliteConfig.CurrentMode = "G36"
-    end
+AddBtn("MODE: G36", 65, function(b)
+    getgenv().EliteConfig.CurrentMode = (getgenv().EliteConfig.CurrentMode == "G36") and "Sniper" or "G36"
     local set = WeaponSettings[getgenv().EliteConfig.CurrentMode]
     getgenv().EliteConfig.BulletSpeed = set.Speed
-    getgenv().EliteConfig.DropComp = set.Drop
     b.Text = "MODE: " .. getgenv().EliteConfig.CurrentMode
     _Stroke.Color = set.Color
     _MainBtn.TextColor3 = set.Color
 end)
 
-AddBtn("AUTO SHOOT: OFF", 100, function(b)
-    getgenv().EliteConfig.AutoShoot = not getgenv().EliteConfig.AutoShoot
-    b.Text = getgenv().EliteConfig.AutoShoot and "AUTO SHOOT: ON" or "AUTO SHOOT: OFF"
-end)
-
-AddBtn("ARREST ASSIST: OFF", 140, function(b)
+AddBtn("ARREST ASSIST: OFF", 110, function(b)
     getgenv().EliteConfig.ArrestAssist = not getgenv().EliteConfig.ArrestAssist
     b.Text = "ARREST ASSIST: " .. (getgenv().EliteConfig.ArrestAssist and "ON" or "OFF")
-end, Color3.fromRGB(0, 100, 200))
-
-AddBtn("RADAR: ALL", 180, function(b)
-    local modes = {"All", "Criminals", "Police"}
-    local nextMode = modes[table.find(modes, getgenv().EliteConfig.RadarMode) % #modes + 1]
-    getgenv().EliteConfig.RadarMode = nextMode
-    b.Text = "RADAR: " .. nextMode:upper()
+    b.BackgroundColor3 = getgenv().EliteConfig.ArrestAssist and Color3.fromRGB(0, 80, 200) or Color3.fromRGB(40, 40, 45)
 end)
 
-AddBtn("ROBBERY ESP: TOGGLE", 220, function() getgenv().EliteConfig.RobberyESP = not getgenv().EliteConfig.RobberyESP end)
-AddBtn("VEHICLE BOOST / NO FOG", 260, function() getgenv().EliteConfig.VehicleBoost = not getgenv().EliteConfig.VehicleBoost; getgenv().EliteConfig.NoFog = true end)
-AddBtn("FLY MODE (E): OFF", 300, function() getgenv().EliteConfig.Flight = not getgenv().EliteConfig.Flight end)
+AddBtn("VEHICLE BOOST: OFF", 155, function(b)
+    getgenv().EliteConfig.VehicleBoost = not getgenv().EliteConfig.VehicleBoost
+    b.Text = "VEHICLE BOOST: " .. (getgenv().EliteConfig.VehicleBoost and "ON" or "OFF")
+    b.BackgroundColor3 = getgenv().EliteConfig.VehicleBoost and Color3.fromRGB(150, 80, 0) or Color3.fromRGB(40, 40, 45)
+end)
 
-AddBtn("SAFE LEAVE", 410, function() _LP:Kick("Safe Exit") end, Color3.fromRGB(150, 0, 0))
-AddBtn("CLOSE", 455, function() _Panel.Visible = false end)
+AddBtn("NO FOG: OFF", 200, function(b)
+    getgenv().EliteConfig.NoFog = not getgenv().EliteConfig.NoFog
+    b.Text = "NO FOG: " .. (getgenv().EliteConfig.NoFog and "ON" or "OFF")
+end)
+
+AddBtn("RADAR: ALL", 245, function(b)
+    local modes = {"All", "Criminals", "Police"}
+    getgenv().EliteConfig.RadarMode = modes[table.find(modes, getgenv().EliteConfig.RadarMode) % #modes + 1]
+    b.Text = "RADAR: " .. getgenv().EliteConfig.RadarMode:upper()
+end)
+
+AddBtn("SAFE LEAVE", 330, function() _LP:Kick("Exit Successful") end, Color3.fromRGB(120, 0, 0))
+AddBtn("CLOSE", 375, function() _Panel.Visible = false end)
 
 _MainBtn.MouseButton1Click:Connect(function() _Panel.Visible = not _Panel.Visible end)
 
--- // Logic Helpers //
-local function IsTargetable(p)
-    if p.Team and (p.Team.Name:find("Police") or p.Team.Name:find("Sheriff")) then return true end
+-- // Helper: Check If Criminal //
+local function GetPlayerStatus(p)
+    if p.Team and (p.Team.Name:lower():find("police") or p.Team.Name:lower():find("sheriff")) then
+        return "Police"
+    end
     local stats = p:FindFirstChild("leaderstats")
     local wanted = stats and (stats:FindFirstChild("Wanted") or stats:FindFirstChild("Bounty") or stats:FindFirstChild("Stars"))
-    return (wanted and wanted.Value > 0)
+    local hasGun = p.Character and p.Character:FindFirstChildWhichIsA("Tool") and p.Character:FindFirstChildWhichIsA("Tool").Name:lower():find("gun")
+    if (wanted and wanted.Value > 0) or hasGun then
+        return "Criminal"
+    end
+    return "Neutral"
 end
 
--- // Main Update Loop (Aimbot & Prediction) //
+-- // Core Update Loop //
 _RUN.RenderStepped:Connect(function()
+    -- No Fog Logic
+    if getgenv().EliteConfig.NoFog then
+        _LIGHTING.FogEnd = 1e6
+        if _LIGHTING:FindFirstChild("Atmosphere") then _LIGHTING.Atmosphere.Density = 0 end
+    end
+
+    -- Aimlock with Prediction
     if getgenv().EliteConfig.AimEnabled then
         local target, shortestMag = nil, getgenv().EliteConfig.FOV
-        local screenCenter = Vector2.new(_CAMERA.ViewportSize.X/2, _CAMERA.ViewportSize.Y/2)
-
         for _, p in pairs(game.Players:GetPlayers()) do
             if p ~= _LP and p.Character and p.Character:FindFirstChild(getgenv().EliteConfig.AimPart) and p.Character.Humanoid.Health > 0 then
                 local pos, screen = _CAMERA:WorldToViewportPoint(p.Character[getgenv().EliteConfig.AimPart].Position)
                 if screen then
-                    local mag = (Vector2.new(pos.X, pos.Y) - screenCenter).Magnitude
+                    local mag = (Vector2.new(pos.X, pos.Y) - Vector2.new(_CAMERA.ViewportSize.X/2, _CAMERA.ViewportSize.Y/2)).Magnitude
                     if mag < shortestMag then shortestMag = mag; target = p end
                 end
             end
@@ -155,37 +159,23 @@ _RUN.RenderStepped:Connect(function()
         if target then
             local tPart = target.Character[getgenv().EliteConfig.AimPart]
             local dist = (_LP.Character.HumanoidRootPart.Position - tPart.Position).Magnitude
-            
-            -- // PREDICTION LOGIC //
-            local velocity = tPart.AssemblyLinearVelocity
-            local timeToHit = dist / getgenv().EliteConfig.BulletSpeed
-            local predictPos = tPart.Position + (velocity * timeToHit)
-            
-            -- Drop Compensation based on Mode
-            local dropComp = Vector3.new(0, (dist / (600 - (getgenv().EliteConfig.DropComp * 1000))), 0)
-            
-            _CAMERA.CFrame = _CAMERA.CFrame:Lerp(CFrame.new(_CAMERA.CFrame.Position, predictPos + dropComp), 0.25)
-            
-            if getgenv().EliteConfig.AutoShoot and shortestMag < 20 then
-                _VIM:SendMouseButtonEvent(_CAMERA.ViewportSize.X/2, _CAMERA.ViewportSize.Y/2, 0, true, game, 1)
-                wait(0.05)
-                _VIM:SendMouseButtonEvent(_CAMERA.ViewportSize.X/2, _CAMERA.ViewportSize.Y/2, 0, false, game, 1)
-            end
+            local predictPos = tPart.Position + (tPart.AssemblyLinearVelocity * (dist / getgenv().EliteConfig.BulletSpeed))
+            _CAMERA.CFrame = _CAMERA.CFrame:Lerp(CFrame.new(_CAMERA.CFrame.Position, predictPos + Vector3.new(0, dist/600, 0)), 0.25)
         end
     end
 end)
 
--- // Movement & Police Assist //
+-- // Heartbeat Loop //
 _RUN.Heartbeat:Connect(function()
-    -- Fly
-    if getgenv().EliteConfig.Flight and _LP.Character and _LP.Character:FindFirstChild("HumanoidRootPart") then
-        local hrp = _LP.Character.HumanoidRootPart
-        hrp.Velocity = Vector3.zero
-        if _INPUT:IsKeyDown(Enum.KeyCode.W) then hrp.CFrame *= CFrame.new(0,0,-getgenv().EliteConfig.FlySpeed/10) end
-        if _INPUT:IsKeyDown(Enum.KeyCode.S) then hrp.CFrame *= CFrame.new(0,0,getgenv().EliteConfig.FlySpeed/10) end
+    -- Vehicle Boost
+    if getgenv().EliteConfig.VehicleBoost then
+        local seat = _LP.Character and _LP.Character:FindFirstChild("Humanoid") and _LP.Character.Humanoid.SeatPart
+        if seat and seat:IsA("VehicleSeat") and seat.Throttle ~= 0 then
+            seat.Parent:TranslateBy(seat.CFrame.LookVector * (getgenv().EliteConfig.SpeedMult / 20) * seat.Throttle)
+        end
     end
 
-    -- Auto Arrest (E)
+    -- Auto Arrest Assist
     if getgenv().EliteConfig.ArrestAssist then
         local tool = _LP.Character and _LP.Character:FindFirstChildWhichIsA("Tool")
         if tool and tool.Name:lower():find("cuff") then
@@ -201,23 +191,32 @@ _RUN.Heartbeat:Connect(function()
     end
 end)
 
--- // ESP System with Detailed Distance //
+-- // Fixed ESP System //
 local function CreateESP(p)
     local txt = Drawing.new("Text"); txt.Size = 16; txt.Outline = true; txt.Center = true; txt.Visible = false
     _RUN.RenderStepped:Connect(function()
         if p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character.Humanoid.Health > 0 then
-            local isCrim = IsTargetable(p)
-            local isPol = p.Team and (p.Team.Name:find("Police") or p.Team.Name:find("Sheriff"))
+            local status = GetPlayerStatus(p)
             local mode = getgenv().EliteConfig.RadarMode
-            local show = (mode == "All") or (mode == "Criminals" and isCrim) or (mode == "Police" and isPol)
+            local show = (mode == "All") or (mode == "Criminals" and status == "Criminal") or (mode == "Police" and status == "Police")
             
             if show then
                 local pos, screen = _CAMERA:WorldToViewportPoint(p.Character.HumanoidRootPart.Position)
                 if screen then
                     local d = math.floor((_LP.Character.HumanoidRootPart.Position - p.Character.HumanoidRootPart.Position).Magnitude)
                     txt.Position = Vector2.new(pos.X, pos.Y - 45)
-                    txt.Color = isCrim and Color3.new(1,0,0) or (isPol and Color3.new(0,0.5,1) or Color3.new(1,1,1))
-                    txt.Text = p.DisplayName .. "\n" .. d .. "m"
+                    
+                    -- แยกสีตามสถานะ (Fix บัคสีแดงเหมือนกัน)
+                    if status == "Police" then
+                        txt.Color = Color3.fromRGB(0, 150, 255) -- ตำรวจสีน้ำเงิน
+                        txt.Text = "[POLICE] " .. p.DisplayName .. "\n" .. d .. "m"
+                    elseif status == "Criminal" then
+                        txt.Color = Color3.fromRGB(255, 50, 50) -- โจรสีแดง
+                        txt.Text = "[CRIMINAL] " .. p.DisplayName .. "\n" .. d .. "m"
+                    else
+                        txt.Color = Color3.fromRGB(255, 255, 255) -- พลเรือนสีขาว
+                        txt.Text = p.DisplayName .. "\n" .. d .. "m"
+                    end
                     txt.Visible = true
                 else txt.Visible = false end
             else txt.Visible = false end
