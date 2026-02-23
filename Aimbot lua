@@ -1,122 +1,156 @@
 --[[ 
-    PROJECT: UNIVERSAL AIMLOCK (V23 - TARGET INFO)
-    PURPOSE: Aimlock with Target Name Notification
-    FEATURES: Smooth Lock, Jitter Safe, Target HUD
+    PROJECT: UNIVERSAL ELITE (V32 - VEHICLE & COMBAT)
+    FEATURES: Smart Predict, Team ESP, No Fog, Safe Leave, Vehicle Tune
+    LOGIC: Comprehensive Combat, Safety & Mobility Suite
 --]]
 
 if not game:IsLoaded() then game.Loaded:Wait() end
 
--- // Services //
 local _LP = game.Players.LocalPlayer
 local _CAMERA = workspace.CurrentCamera
 local _RUN = game:GetService("RunService")
-local _UIS = game:GetService("UserInputService")
-local _TS = game:GetService("TweenService")
+local _LIGHTING = game:GetService("Lighting")
 
--- // Config //
-getgenv().AimConfig = {
-    Enabled = false,
-    Smoothness = 0.12,
+getgenv().EliteConfig = {
+    AimEnabled = false,
+    ESPEnabled = false,
     AimPart = "HumanoidRootPart",
     FOV = 200,
-    ThemeColor = Color3.fromRGB(255, 45, 45)
+    NoFog = false,
+    MaxDist = 2000,
+    CurrentMode = "G36",
+    BulletSpeed = 850,
+    -- Vehicle Config
+    VehicleTune = false,
+    SpeedMult = 1.5, -- ตัวคูณความเร็ว (แนะนำไม่เกิน 2.0 เพื่อความปลอดภัย)
+    ThemeColor = Color3.fromRGB(0, 255, 150)
 }
 
 -- // UI Creation //
 local _G = Instance.new("ScreenGui", game.CoreGui)
-_G.Name = "BWH_TargetHUD"
+_G.Name = "BWH_Elite_V32"
 
--- Main Toggle Button
 local _MainBtn = Instance.new("TextButton", _G)
-_MainBtn.Size = UDim2.new(0, 60, 0, 60)
-_MainBtn.Position = UDim2.new(0.05, 0, 0.3, 0)
-_MainBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-_MainBtn.Text = "AIM: OFF"
-_MainBtn.TextColor3 = Color3.new(1, 1, 1)
+_MainBtn.Size = UDim2.new(0, 65, 0, 65)
+_MainBtn.Position = UDim2.new(0, 20, 0.4, 0)
+_MainBtn.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+_MainBtn.Text = "ELITE"
+_MainBtn.TextColor3 = getgenv().EliteConfig.ThemeColor
 _MainBtn.Font = Enum.Font.GothamBold
 _MainBtn.TextSize = 10
 _MainBtn.Draggable = true
 Instance.new("UICorner", _MainBtn).CornerRadius = UDim.new(1, 0)
-Instance.new("UIStroke", _MainBtn).Color = getgenv().AimConfig.ThemeColor
+Instance.new("UIStroke", _MainBtn).Color = getgenv().EliteConfig.ThemeColor
 
--- Target Notification HUD (ส่วนแสดงชื่อเป้าหมาย)
-local _TargetHUD = Instance.new("Frame", _G)
-_TargetHUD.Size = UDim2.new(0, 200, 0, 40)
-_TargetHUD.Position = UDim2.new(0.5, -100, 0.15, 0) -- แสดงด้านบนกลางหน้าจอ
-_TargetHUD.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
-_TargetHUD.BackgroundTransparency = 0.4
-_TargetHUD.Visible = false
-Instance.new("UICorner", _TargetHUD)
-Instance.new("UIStroke", _TargetHUD).Color = getgenv().AimConfig.ThemeColor
+local _Panel = Instance.new("Frame", _MainBtn)
+_Panel.Size = UDim2.new(0, 180, 0, 310)
+_Panel.Position = UDim2.new(1, 15, 0, -120)
+_Panel.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+_Panel.Visible = false
+Instance.new("UICorner", _Panel)
 
-local _TargetText = Instance.new("TextLabel", _TargetHUD)
-_TargetText.Size = UDim2.new(1, 0, 1, 0)
-_TargetText.Text = "Locking: None"
-_TargetText.TextColor3 = Color3.new(1, 1, 1)
-_TargetText.Font = Enum.Font.GothamMedium
-_TargetText.TextSize = 14
-_TargetText.BackgroundTransparency = 1
+local function AddBtn(text, y, callback, color)
+    local b = Instance.new("TextButton", _Panel)
+    b.Size = UDim2.new(0.9, 0, 0, 25)
+    b.Position = UDim2.new(0.05, 0, 0, y)
+    b.BackgroundColor3 = color or Color3.fromRGB(25, 25, 25)
+    b.Text = text; b.TextColor3 = Color3.new(0.9, 0.9, 0.9)
+    b.Font = Enum.Font.GothamMedium; b.TextSize = 10
+    Instance.new("UICorner", b)
+    b.MouseButton1Click:Connect(function() callback(b) end)
+    return b
+end
 
--- // Helper Functions //
-local function GetClosestPlayer()
-    local target, shortestDistance = nil, getgenv().AimConfig.FOV
-    local screenCenter = Vector2.new(_CAMERA.ViewportSize.X / 2, _CAMERA.ViewportSize.Y / 2)
+-- // ฟีเจอร์หลัก //
+AddBtn("SMART AIM: OFF", 35, function(b)
+    getgenv().EliteConfig.AimEnabled = not getgenv().EliteConfig.AimEnabled
+    b.Text = getgenv().EliteConfig.AimEnabled and "SMART AIM: ON" or "SMART AIM: OFF"
+    b.TextColor3 = getgenv().EliteConfig.AimEnabled and getgenv().EliteConfig.ThemeColor or Color3.new(0.9,0.9,0.9)
+end)
 
-    for _, player in pairs(game.Players:GetPlayers()) do
-        if player ~= _LP and player.Character and player.Character:FindFirstChild(getgenv().AimConfig.AimPart) then
-            local humanoid = player.Character:FindFirstChild("Humanoid")
-            if humanoid and humanoid.Health > 0 then
-                local point, onScreen = _CAMERA:WorldToViewportPoint(player.Character[getgenv().AimConfig.AimPart].Position)
-                if onScreen then
-                    local distance = (Vector2.new(point.X, point.Y) - screenCenter).Magnitude
-                    if distance < shortestDistance then
-                        shortestDistance = distance
-                        target = player
+AddBtn("MODE: G36 / SNIPER", 65, function(b)
+    if getgenv().EliteConfig.CurrentMode == "G36" then
+        getgenv().EliteConfig.CurrentMode = "SNIPER"; getgenv().EliteConfig.BulletSpeed = 1200
+        b.Text = "MODE: SNIPER"
+    else
+        getgenv().EliteConfig.CurrentMode = "G36"; getgenv().EliteConfig.BulletSpeed = 850
+        b.Text = "MODE: G36"
+    end
+end)
+
+AddBtn("ESP & JOB: TOGGLE", 95, function() getgenv().EliteConfig.ESPEnabled = not getgenv().EliteConfig.ESPEnabled end)
+AddBtn("NO FOG: TOGGLE", 125, function()
+    getgenv().EliteConfig.NoFog = not getgenv().EliteConfig.NoFog
+    _LIGHTING.FogEnd = getgenv().EliteConfig.NoFog and 100000 or 2000
+end)
+
+-- // Vehicle Feature (NEW) //
+AddBtn("VEHICLE TUNE: OFF", 155, function(b)
+    getgenv().EliteConfig.VehicleTune = not getgenv().EliteConfig.VehicleTune
+    b.Text = getgenv().EliteConfig.VehicleTune and "VEHICLE TUNE: ON" or "VEHICLE TUNE: OFF"
+    b.TextColor3 = getgenv().EliteConfig.VehicleTune and getgenv().EliteConfig.ThemeColor or Color3.new(0.9,0.9,0.9)
+end)
+
+AddBtn("SAFE LEAVE (QUIT)", 195, function()
+    _LP:Kick("Safe Leave Activated")
+end, Color3.fromRGB(150, 0, 0))
+
+AddBtn("CLOSE MENU", 240, function() _Panel.Visible = false end)
+_MainBtn.MouseButton1Click:Connect(function() _Panel.Visible = not _Panel.Visible end)
+
+-- // Vehicle Tune Logic //
+_RUN.Heartbeat:Connect(function()
+    if getgenv().EliteConfig.VehicleTune then
+        local char = _LP.Character
+        if char and char:FindFirstChild("Humanoid") and char.Humanoid.SeatPart and char.Humanoid.SeatPart:IsA("VehicleSeat") then
+            local seat = char.Humanoid.SeatPart
+            -- ปรับจูนความแรงรถแบบ Smooth ป้องกันระบบ Anti-cheat ตรวจจับ
+            seat.MaxSpeed = 100 * getgenv().EliteConfig.SpeedMult
+            seat.Torque = 10000 * getgenv().EliteConfig.SpeedMult
+        end
+    end
+end)
+
+-- // Aim & ESP Logic (เหมือนเวอร์ชันก่อนหน้า) //
+_RUN.RenderStepped:Connect(function()
+    if getgenv().EliteConfig.AimEnabled then
+        local target, shortestDist = nil, getgenv().EliteConfig.FOV
+        for _, p in pairs(game.Players:GetPlayers()) do
+            if p ~= _LP and p.Character and p.Character:FindFirstChild(getgenv().EliteConfig.AimPart) then
+                if p.Character.Humanoid.Health > 0 then
+                    local pos, screen = _CAMERA:WorldToViewportPoint(p.Character[getgenv().EliteConfig.AimPart].Position)
+                    if screen then
+                        local mag = (Vector2.new(pos.X, pos.Y) - Vector2.new(_CAMERA.ViewportSize.X/2, _CAMERA.ViewportSize.Y/2)).Magnitude
+                        if mag < shortestDist then shortestDist = mag; target = p end
                     end
                 end
             end
         end
-    end
-    return target
-end
-
--- // Toggle Logic //
-_MainBtn.MouseButton1Click:Connect(function()
-    getgenv().AimConfig.Enabled = not getgenv().AimConfig.Enabled
-    _MainBtn.Text = getgenv().AimConfig.Enabled and "AIM: ON" or "AIM: OFF"
-    _MainBtn.BackgroundColor3 = getgenv().AimConfig.Enabled and getgenv().AimConfig.ThemeColor or Color3.fromRGB(15, 15, 15)
-    
-    if not getgenv().AimConfig.Enabled then
-        _TargetHUD.Visible = false
-    end
-end)
-
--- // Main Loop //
-local lastTarget = nil
-
-_RUN.RenderStepped:Connect(function()
-    if getgenv().AimConfig.Enabled then
-        local target = GetClosestPlayer()
-        
-        if target and target.Character then
-            -- ล็อกเป้าหมาย
-            local targetPos = target.Character[getgenv().AimConfig.AimPart].Position
-            local jitter = (math.random(-10, 10) / 1000)
-            _CAMERA.CFrame = _CAMERA.CFrame:Lerp(CFrame.new(_CAMERA.CFrame.Position, targetPos), getgenv().AimConfig.Smoothness + jitter)
-            
-            -- อัปเดตการแจ้งเตือน
-            _TargetHUD.Visible = true
-            _TargetText.Text = "Locking: " .. player.DisplayName -- ใช้ชื่อที่ตั้งในเกม
-            
-            -- ถ้าเปลี่ยนเป้าหมายใหม่ ให้กระพริบไฟแจ้งเตือนเล็กน้อย
-            if target ~= lastTarget then
-                lastTarget = target
-                _TargetText.TextColor3 = getgenv().AimConfig.ThemeColor
-                task.delay(0.2, function() _TargetText.TextColor3 = Color3.new(1,1,1) end)
-            end
-        else
-            _TargetHUD.Visible = false
-            lastTarget = nil
+        if target then
+            local tPart = target.Character[getgenv().EliteConfig.AimPart]
+            local dist = (_LP.Character.HumanoidRootPart.Position - tPart.Position).Magnitude
+            local finalPos = tPart.Position + (tPart.AssemblyLinearVelocity * (dist / getgenv().EliteConfig.BulletSpeed))
+            _CAMERA.CFrame = CFrame.new(_CAMERA.CFrame.Position, finalPos + Vector3.new(0, (dist/500), 0))
         end
     end
 end)
+
+-- (ESP Logic ยังคงอยู่ครบถ้วนสำหรับการส่องอาชีพและระยะทาง)
+local function CreateESP(p)
+    local box = Drawing.new("Square"); box.Thickness = 1; box.Visible = false
+    local txt = Drawing.new("Text"); txt.Size = 13; txt.Outline = true; txt.Visible = false
+    _RUN.RenderStepped:Connect(function()
+        if getgenv().EliteConfig.ESPEnabled and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+            local dist = (_LP.Character.HumanoidRootPart.Position - p.Character.HumanoidRootPart.Position).Magnitude
+            if dist <= getgenv().EliteConfig.MaxDist then
+                local pos, screen = _CAMERA:WorldToViewportPoint(p.Character.HumanoidRootPart.Position)
+                if screen then
+                    box.Position = Vector2.new(pos.X - 25, pos.Y - 25); box.Size = Vector2.new(50, 50); box.Color = (p.Team and p.TeamColor.Color or Color3.new(1,1,1)); box.Visible = true
+                    txt.Position = Vector2.new(pos.X, pos.Y - 40); txt.Text = p.DisplayName .. "\n[" .. (p.Team and p.Team.Name or "Civ") .. "]"; txt.Visible = true
+                else box.Visible = false; txt.Visible = false end
+            else box.Visible = false; txt.Visible = false end
+        else box.Visible = false; txt.Visible = false end
+    end)
+end
+for _, p in pairs(game.Players:GetPlayers()) do if p ~= _LP then CreateESP(p) end end
+game.Players.PlayerAdded:Connect(function(p) if p ~= _LP then CreateESP(p) end end)
