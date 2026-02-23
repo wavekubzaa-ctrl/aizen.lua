@@ -1,7 +1,7 @@
 --[[ 
-    PROJECT: GLUE HUB (V5 - INSTANT WARP)
+    PROJECT: GLUE HUB (V8 - BOSS SELECTOR)
     GAME: Glue Piece
-    FEATURES: Instant Island Warp, Instant Boss Farm, Transparent UI, Multi-Weapon
+    FEATURES: Manual Boss Selection, Auto-Lock Target, Transparent UI
 --]]
 
 if not game:IsLoaded() then game.Loaded:Wait() end
@@ -9,137 +9,131 @@ if not game:IsLoaded() then game.Loaded:Wait() end
 local _LP = game.Players.LocalPlayer
 local _RUN = game:GetService("RunService")
 
+-- // ค้นหาโฟลเดอร์เก็บมอนสเตอร์ //
+local function GetEnemyFolder()
+    return workspace:FindFirstChild("Enemies") or workspace:FindFirstChild("NPCs") or workspace:FindFirstChild("Monsters")
+end
+
 getgenv().GlueConfig = {
     AutoFarm = false,
-    AutoWeapon = true,
-    InfGeppo = true,
-    TargetBoss = nil,
-    Distance = 6,
-    ThemeColor = Color3.fromRGB(0, 255, 100)
+    LockedTargetName = nil, -- ชื่อบอสที่ล็อคไว้
+    Distance = 7,
+    InfGeppo = true
 }
 
--- // พิกัดเกาะต่างๆ (พิกัดโดยประมาณ) //
-local IslandLocations = {
-    ["Starter Island"] = CFrame.new(-120, 10, 200),
-    ["Orange Town"] = CFrame.new(1200, 10, -500),
-    ["Jungle"] = CFrame.new(-1500, 10, -1200),
-    ["Desert"] = CFrame.new(3000, 10, 2500),
-    ["Snow Island"] = CFrame.new(-2500, 50, 3000),
-    ["Marine Base"] = CFrame.new(4500, 20, -1500)
-}
-
--- // UI Glass Theme 50% //
+-- // UI (Glass Theme 50%) //
 local _G = Instance.new("ScreenGui", game.CoreGui)
-_G.Name = "GlueHub_V5"
+_G.Name = "GlueV8_Selector"
 
 local _MainBtn = Instance.new("TextButton", _G)
-_MainBtn.Size = UDim2.new(0, 70, 0, 70)
+_MainBtn.Size = UDim2.new(0, 65, 0, 65)
 _MainBtn.Position = UDim2.new(0, 20, 0.4, 0)
-_MainBtn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+_MainBtn.BackgroundColor3 = Color3.new(0,0,0)
 _MainBtn.BackgroundTransparency = 0.5
-_MainBtn.Text = "WARP V5"
-_MainBtn.TextColor3 = getgenv().GlueConfig.ThemeColor
-_MainBtn.Font = Enum.Font.GothamBold
-_MainBtn.TextSize = 10
+_MainBtn.Text = "BOSS\nLOCK"
+_MainBtn.TextColor3 = Color3.fromRGB(255, 170, 0)
 _MainBtn.Draggable = true
-Instance.new("UICorner", _MainBtn).CornerRadius = UDim.new(1, 0)
-Instance.new("UIStroke", _MainBtn).Color = getgenv().GlueConfig.ThemeColor
+Instance.new("UICorner", _MainBtn).CornerRadius = UDim.new(1,0)
+Instance.new("UIStroke", _MainBtn).Color = Color3.fromRGB(255, 170, 0)
 
 local _Panel = Instance.new("Frame", _MainBtn)
-_Panel.Size = UDim2.new(0, 260, 0, 450)
-_Panel.Position = UDim2.new(1, 15, 0, -150)
-_Panel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+_Panel.Size = UDim2.new(0, 240, 0, 420)
+_Panel.Position = UDim2.new(1, 10, 0, -150)
+_Panel.BackgroundColor3 = Color3.new(0,0,0)
 _Panel.BackgroundTransparency = 0.5
 _Panel.Visible = false
 Instance.new("UICorner", _Panel)
-Instance.new("UIStroke", _Panel).Color = getgenv().GlueConfig.ThemeColor
 
-local function AddBtn(text, y, callback, parent)
+local function AddBtn(text, y, callback, parent, color)
     local b = Instance.new("TextButton", parent or _Panel)
-    b.Size = UDim2.new(0.9, 0, 0, 28)
+    b.Size = UDim2.new(0.9, 0, 0, 30)
     b.Position = UDim2.new(0.05, 0, 0, y)
-    b.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    b.BackgroundTransparency = 0.85
-    b.Text = text; b.TextColor3 = Color3.new(1, 1, 1)
-    b.Font = Enum.Font.GothamBold; b.TextSize = 11
+    b.BackgroundColor3 = color or Color3.new(1,1,1)
+    b.BackgroundTransparency = 0.8
+    b.Text = text; b.TextColor3 = Color3.new(1,1,1)
+    b.Font = Enum.Font.GothamBold; b.TextSize = 10
     Instance.new("UICorner", b)
     b.MouseButton1Click:Connect(function() callback(b) end)
     return b
 end
 
--- // 1. Boss Monitor //
-local _Monitor = Instance.new("ScrollingFrame", _Panel)
-_Monitor.Size = UDim2.new(0.9, 0, 0, 100)
-_Monitor.Position = UDim2.new(0.05, 0, 0, 35)
-_Monitor.BackgroundTransparency = 0.9
-_Monitor.BackgroundColor3 = Color3.new(0,0,0)
-_Monitor.CanvasSize = UDim2.new(0, 0, 2, 0)
-_Monitor.ScrollBarThickness = 1
-
--- // 2. Main Farm Controls //
-AddBtn("INSTANT FARM: OFF", 150, function(b)
+-- // ฟาร์มหลัก //
+AddBtn("START AUTO FARM: OFF", 15, function(b)
     getgenv().GlueConfig.AutoFarm = not getgenv().GlueConfig.AutoFarm
-    b.Text = getgenv().GlueConfig.AutoFarm and "INSTANT FARM: ON" or "INSTANT FARM: OFF"
-    b.TextColor3 = getgenv().GlueConfig.AutoFarm and Color3.new(0,1,0) or Color3.new(1,1,1)
+    b.Text = getgenv().GlueConfig.AutoFarm and "AUTO FARM: ON" or "START AUTO FARM: OFF"
+    b.BackgroundColor3 = getgenv().GlueConfig.AutoFarm and Color3.new(0, 0.5, 0) or Color3.new(1,1,1)
 end)
 
-AddBtn("SELECT NEAREST BOSS", 185, function(b)
-    local target = nil
-    for _, v in pairs(workspace.Enemies:GetChildren()) do
-        if v:FindFirstChild("Humanoid") and v.Humanoid.MaxHealth > 5000 and v.Humanoid.Health > 0 then
-            target = v.Name; break
-        end
-    end
-    getgenv().GlueConfig.TargetBoss = target
-    b.Text = target and "TARGET: "..target or "NO BOSS FOUND"
-end)
+-- แสดงเป้าหมายปัจจุบัน
+local _CurrentTarget = Instance.new("TextLabel", _Panel)
+_CurrentTarget.Size = UDim2.new(1, 0, 0, 25); _CurrentTarget.Position = UDim2.new(0, 0, 0, 50)
+_CurrentTarget.Text = "TARGET: NONE"; _CurrentTarget.TextColor3 = Color3.fromRGB(255, 200, 0)
+_CurrentTarget.BackgroundTransparency = 1; _CurrentTarget.Font = Enum.Font.GothamBold
 
--- // 3. Instant Island Warp (Dropdown-style List) //
+AddBtn("CLEAR TARGET (FARM ALL)", 80, function()
+    getgenv().GlueConfig.LockedTargetName = nil
+    _CurrentTarget.Text = "TARGET: NONE (AUTO)"
+end, _Panel, Color3.fromRGB(100, 0, 0))
+
+-- Boss Selector List
+local _ListTitle = Instance.new("TextLabel", _Panel)
+_ListTitle.Size = UDim2.new(1, 0, 0, 20); _ListTitle.Position = UDim2.new(0, 0, 0, 115)
+_ListTitle.Text = "-- SELECT BOSS TO LOCK --"; _ListTitle.TextColor3 = Color3.new(1,1,1)
+_ListTitle.BackgroundTransparency = 1; _ListTitle.TextSize = 10
+
+local _BossScroll = Instance.new("ScrollingFrame", _Panel)
+_BossScroll.Size = UDim2.new(0.9, 0, 0, 150); _BossScroll.Position = UDim2.new(0.05, 0, 0, 140)
+_BossScroll.BackgroundTransparency = 0.9; _BossScroll.CanvasSize = UDim2.new(0, 0, 5, 0)
+_BossScroll.ScrollBarThickness = 2
+
+-- Warp Section
+local _WarpTitle = Instance.new("TextLabel", _Panel)
+_WarpTitle.Size = UDim2.new(1, 0, 0, 20); _WarpTitle.Position = UDim2.new(0, 0, 0, 300)
+_WarpTitle.Text = "-- QUICK WARP --"; _WarpTitle.TextColor3 = Color3.new(1,1,1)
+_WarpTitle.BackgroundTransparency = 1; _WarpTitle.TextSize = 10
+
 local _WarpScroll = Instance.new("ScrollingFrame", _Panel)
-_WarpScroll.Size = UDim2.new(0.9, 0, 0, 120)
-_WarpScroll.Position = UDim2.new(0.05, 0, 0, 225)
-_WarpScroll.BackgroundTransparency = 0.9
-_WarpScroll.CanvasSize = UDim2.new(0, 0, 3, 0)
-_WarpScroll.ScrollBarThickness = 1
+_WarpScroll.Size = UDim2.new(0.9, 0, 0, 50); _WarpScroll.Position = UDim2.new(0.05, 0, 0, 320)
+_WarpScroll.BackgroundTransparency = 0.9; _WarpScroll.CanvasSize = UDim2.new(0, 0, 2, 0)
 
-local warpY = 0
-for islandName, cf in pairs(IslandLocations) do
-    AddBtn("WARP: "..islandName, warpY, function()
-        if _LP.Character and _LP.Character:FindFirstChild("HumanoidRootPart") then
-            _LP.Character.HumanoidRootPart.CFrame = cf
-        end
-    end, _WarpScroll)
-    warpY = warpY + 32
+local Islands = { ["Starter"] = CFrame.new(-168, 12, 190), ["Jungle"] = CFrame.new(-1250, 20, -1120) }
+local wy = 0
+for name, cf in pairs(Islands) do
+    AddBtn(name, wy, function() _LP.Character.HumanoidRootPart.CFrame = cf end, _WarpScroll)
+    wy = wy + 35
 end
 
-AddBtn("SAFE QUIT", 360, function() _LP:Kick("Instant Warp Exit") end, _Panel)
-AddBtn("CLOSE", 400, function() _Panel.Visible = false end, _Panel)
-
+AddBtn("CLOSE", 380, function() _Panel.Visible = false end)
 _MainBtn.MouseButton1Click:Connect(function() _Panel.Visible = not _Panel.Visible end)
 
--- // Core Logic //
-
--- Monitor Update
+-- // ระบบอัปเดตลิสต์บอส (เลือกได้จริง) //
 spawn(function()
-    while wait(1) do
-        for _, v in pairs(_Monitor:GetChildren()) do if v:IsA("TextLabel") then v:Destroy() end end
-        local offset = 0
-        for _, boss in pairs(workspace.Enemies:GetChildren()) do
-            if boss:FindFirstChild("Humanoid") and boss.Humanoid.MaxHealth > 5000 then
-                local l = Instance.new("TextLabel", _Monitor)
-                l.Size = UDim2.new(1, 0, 0, 18); l.Position = UDim2.new(0, 0, 0, offset)
-                l.BackgroundTransparency = 1; l.Font = Enum.Font.Gotham; l.TextSize = 10
-                local alive = boss.Humanoid.Health > 0
-                l.Text = boss.Name .. " [" .. (alive and "ALIVE" or "DEAD") .. "]"
-                l.TextColor3 = alive and Color3.new(0,1,0) or Color3.new(1,0,0)
-                offset = offset + 18
+    while wait(2) do
+        for _, v in pairs(_BossScroll:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
+        local folder = GetEnemyFolder()
+        if folder then
+            local by = 0
+            -- ใช้ Dictionary เพื่อกรองชื่อซ้ำ
+            local displayed = {}
+            for _, v in pairs(folder:GetChildren()) do
+                if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 and not displayed[v.Name] then
+                    -- กรองเฉพาะบอส (เลือด 5000+) หรือชื่อเฉพาะ
+                    if v.Humanoid.MaxHealth >= 5000 then
+                        displayed[v.Name] = true
+                        AddBtn(v.Name, by, function()
+                            getgenv().GlueConfig.LockedTargetName = v.Name
+                            _CurrentTarget.Text = "LOCKED: " .. v.Name
+                        end, _BossScroll)
+                        by = by + 35
+                    end
+                end
             end
         end
     end
 end)
 
--- Multi-Weapon Fast Attack
-local function Attack()
+-- Auto Weapon
+local function UseTools()
     local bp = _LP:FindFirstChild("Backpack")
     local ch = _LP.Character
     if bp and ch then
@@ -151,34 +145,37 @@ local function Attack()
     end
 end
 
--- Infinite Geppo
-_RUN.Stepped:Connect(function()
-    if getgenv().GlueConfig.InfGeppo and _LP.Character and _LP.Character:FindFirstChild("Humanoid") then
-        _LP.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-    end
-end)
-
--- Instant Farm Loop
+-- // ฟาร์มลูป (ระบบล็อคเป้าเป๊ะๆ) //
 _RUN.Heartbeat:Connect(function()
     if getgenv().GlueConfig.AutoFarm then
         pcall(function()
+            local folder = GetEnemyFolder()
             local target = nil
-            if getgenv().GlueConfig.TargetBoss then
-                target = workspace.Enemies:FindFirstChild(getgenv().GlueConfig.TargetBoss)
+            
+            -- ถ้าล็อคชื่อไว้ ให้หาบอสชื่อนั้นที่เลือด > 0
+            if getgenv().GlueConfig.LockedTargetName then
+                for _, v in pairs(folder:GetChildren()) do
+                    if v.Name == getgenv().GlueConfig.LockedTargetName and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
+                        target = v
+                        break
+                    end
+                end
             end
             
-            if not target or target.Humanoid.Health <= 0 then
-                for _, v in pairs(workspace.Enemies:GetChildren()) do
+            -- ถ้าไม่ได้ล็อค หรือบอสที่ล็อคไม่เกิด ให้หาตัวที่ใกล้ที่สุด
+            if not target then
+                for _, v in pairs(folder:GetChildren()) do
                     if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
-                        target = v; break
+                        target = v
+                        break
                     end
                 end
             end
 
             if target and _LP.Character:FindFirstChild("HumanoidRootPart") then
-                -- Instant Warp to Target (บนหัวศัตรู)
+                _LP.Character.HumanoidRootPart.Velocity = Vector3.zero
                 _LP.Character.HumanoidRootPart.CFrame = target.HumanoidRootPart.CFrame * CFrame.new(0, getgenv().GlueConfig.Distance, 0) * CFrame.Angles(math.rad(-90), 0, 0)
-                Attack()
+                UseTools()
             end
         end)
     end
