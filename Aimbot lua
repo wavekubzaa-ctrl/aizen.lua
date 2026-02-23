@@ -1,7 +1,7 @@
 --[[ 
-    PROJECT: UNIVERSAL ELITE (V32 - VEHICLE & COMBAT)
-    FEATURES: Smart Predict, Team ESP, No Fog, Safe Leave, Vehicle Tune
-    LOGIC: Comprehensive Combat, Safety & Mobility Suite
+    PROJECT: UNIVERSAL ELITE (V35 - AUTO-EXECUTION)
+    FEATURES: Smart Predict, Criminal ESP, Auto-Shoot (Trigger Bot), Vehicle Boost
+    LOGIC: Detect Target -> Validate Damage -> Auto Fire
 --]]
 
 if not game:IsLoaded() then game.Loaded:Wait() end
@@ -10,9 +10,11 @@ local _LP = game.Players.LocalPlayer
 local _CAMERA = workspace.CurrentCamera
 local _RUN = game:GetService("RunService")
 local _LIGHTING = game:GetService("Lighting")
+local _INPUT = game:GetService("UserInputService")
 
 getgenv().EliteConfig = {
     AimEnabled = false,
+    AutoShoot = false, -- ระบบยิงออโต้
     ESPEnabled = false,
     AimPart = "HumanoidRootPart",
     FOV = 200,
@@ -20,21 +22,20 @@ getgenv().EliteConfig = {
     MaxDist = 2000,
     CurrentMode = "G36",
     BulletSpeed = 850,
-    -- Vehicle Config
     VehicleTune = false,
-    SpeedMult = 1.5, -- ตัวคูณความเร็ว (แนะนำไม่เกิน 2.0 เพื่อความปลอดภัย)
-    ThemeColor = Color3.fromRGB(0, 255, 150)
+    SpeedMult = 20,
+    ThemeColor = Color3.fromRGB(255, 200, 0) -- สีทอง (โหมดพรีเมียม)
 }
 
--- // UI Creation //
+-- // UI Screen //
 local _G = Instance.new("ScreenGui", game.CoreGui)
-_G.Name = "BWH_Elite_V32"
+_G.Name = "BWH_Elite_V35"
 
 local _MainBtn = Instance.new("TextButton", _G)
 _MainBtn.Size = UDim2.new(0, 65, 0, 65)
 _MainBtn.Position = UDim2.new(0, 20, 0.4, 0)
-_MainBtn.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
-_MainBtn.Text = "ELITE"
+_MainBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+_MainBtn.Text = "AUTO-V35"
 _MainBtn.TextColor3 = getgenv().EliteConfig.ThemeColor
 _MainBtn.Font = Enum.Font.GothamBold
 _MainBtn.TextSize = 10
@@ -43,110 +44,144 @@ Instance.new("UICorner", _MainBtn).CornerRadius = UDim.new(1, 0)
 Instance.new("UIStroke", _MainBtn).Color = getgenv().EliteConfig.ThemeColor
 
 local _Panel = Instance.new("Frame", _MainBtn)
-_Panel.Size = UDim2.new(0, 180, 0, 310)
-_Panel.Position = UDim2.new(1, 15, 0, -120)
-_Panel.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+_Panel.Size = UDim2.new(0, 200, 0, 350)
+_Panel.Position = UDim2.new(1, 15, 0, -130)
+_Panel.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 _Panel.Visible = false
 Instance.new("UICorner", _Panel)
 
 local function AddBtn(text, y, callback, color)
     local b = Instance.new("TextButton", _Panel)
-    b.Size = UDim2.new(0.9, 0, 0, 25)
+    b.Size = UDim2.new(0.9, 0, 0, 28)
     b.Position = UDim2.new(0.05, 0, 0, y)
-    b.BackgroundColor3 = color or Color3.fromRGB(25, 25, 25)
-    b.Text = text; b.TextColor3 = Color3.new(0.9, 0.9, 0.9)
-    b.Font = Enum.Font.GothamMedium; b.TextSize = 10
+    b.BackgroundColor3 = color or Color3.fromRGB(35, 35, 35)
+    b.Text = text; b.TextColor3 = Color3.new(1, 1, 1)
+    b.Font = Enum.Font.SourceSansBold; b.TextSize = 14
     Instance.new("UICorner", b)
     b.MouseButton1Click:Connect(function() callback(b) end)
     return b
 end
 
 -- // ฟีเจอร์หลัก //
-AddBtn("SMART AIM: OFF", 35, function(b)
+AddBtn("SMART AIM: OFF", 20, function(b)
     getgenv().EliteConfig.AimEnabled = not getgenv().EliteConfig.AimEnabled
-    b.Text = getgenv().EliteConfig.AimEnabled and "SMART AIM: ON" or "SMART AIM: OFF"
-    b.TextColor3 = getgenv().EliteConfig.AimEnabled and getgenv().EliteConfig.ThemeColor or Color3.new(0.9,0.9,0.9)
+    b.Text = getgenv().EliteConfig.AimEnabled and "AIMLOCK: ON" or "AIMLOCK: OFF"
+    b.BackgroundColor3 = getgenv().EliteConfig.AimEnabled and Color3.fromRGB(0, 100, 0) or Color3.fromRGB(35, 35, 35)
 end)
 
-AddBtn("MODE: G36 / SNIPER", 65, function(b)
-    if getgenv().EliteConfig.CurrentMode == "G36" then
-        getgenv().EliteConfig.CurrentMode = "SNIPER"; getgenv().EliteConfig.BulletSpeed = 1200
-        b.Text = "MODE: SNIPER"
-    else
-        getgenv().EliteConfig.CurrentMode = "G36"; getgenv().EliteConfig.BulletSpeed = 850
-        b.Text = "MODE: G36"
-    end
+AddBtn("AUTO SHOOT: OFF", 55, function(b)
+    getgenv().EliteConfig.AutoShoot = not getgenv().EliteConfig.AutoShoot
+    b.Text = getgenv().EliteConfig.AutoShoot and "AUTO SHOOT: ON" or "AUTO SHOOT: OFF"
+    b.BackgroundColor3 = getgenv().EliteConfig.AutoShoot and Color3.fromRGB(150, 100, 0) or Color3.fromRGB(35, 35, 35)
 end)
 
-AddBtn("ESP & JOB: TOGGLE", 95, function() getgenv().EliteConfig.ESPEnabled = not getgenv().EliteConfig.ESPEnabled end)
-AddBtn("NO FOG: TOGGLE", 125, function()
-    getgenv().EliteConfig.NoFog = not getgenv().EliteConfig.NoFog
-    _LIGHTING.FogEnd = getgenv().EliteConfig.NoFog and 100000 or 2000
+AddBtn("TARGET: BODY/HEAD", 90, function(b)
+    getgenv().EliteConfig.AimPart = (getgenv().EliteConfig.AimPart == "HumanoidRootPart") and "Head" or "HumanoidRootPart"
+    b.Text = "TARGET: " .. (getgenv().EliteConfig.AimPart == "Head" and "HEAD" or "BODY")
 end)
 
--- // Vehicle Feature (NEW) //
-AddBtn("VEHICLE TUNE: OFF", 155, function(b)
-    getgenv().EliteConfig.VehicleTune = not getgenv().EliteConfig.VehicleTune
-    b.Text = getgenv().EliteConfig.VehicleTune and "VEHICLE TUNE: ON" or "VEHICLE TUNE: OFF"
-    b.TextColor3 = getgenv().EliteConfig.VehicleTune and getgenv().EliteConfig.ThemeColor or Color3.new(0.9,0.9,0.9)
+AddBtn("MODE: G36 / SNIPER", 125, function(b)
+    getgenv().EliteConfig.CurrentMode = (getgenv().EliteConfig.CurrentMode == "G36") and "SNIPER" or "G36"
+    getgenv().EliteConfig.BulletSpeed = (getgenv().EliteConfig.CurrentMode == "SNIPER") and 1500 or 850
+    b.Text = "MODE: " .. getgenv().EliteConfig.CurrentMode
 end)
 
-AddBtn("SAFE LEAVE (QUIT)", 195, function()
-    _LP:Kick("Safe Leave Activated")
-end, Color3.fromRGB(150, 0, 0))
+AddBtn("CRIMINAL ESP: TOGGLE", 160, function() getgenv().EliteConfig.ESPEnabled = not getgenv().EliteConfig.ESPEnabled end)
+AddBtn("NO FOG: TOGGLE", 195, function() getgenv().EliteConfig.NoFog = not getgenv().EliteConfig.NoFog end)
+AddBtn("VEHICLE BOOST: TOGGLE", 230, function() getgenv().EliteConfig.VehicleTune = not getgenv().EliteConfig.VehicleTune end)
+AddBtn("SAFE LEAVE", 270, function() _LP:Kick("Safe Leave Activated") end, Color3.fromRGB(150, 0, 0))
+AddBtn("CLOSE", 310, function() _Panel.Visible = false end)
 
-AddBtn("CLOSE MENU", 240, function() _Panel.Visible = false end)
 _MainBtn.MouseButton1Click:Connect(function() _Panel.Visible = not _Panel.Visible end)
 
--- // Vehicle Tune Logic //
-_RUN.Heartbeat:Connect(function()
-    if getgenv().EliteConfig.VehicleTune then
-        local char = _LP.Character
-        if char and char:FindFirstChild("Humanoid") and char.Humanoid.SeatPart and char.Humanoid.SeatPart:IsA("VehicleSeat") then
-            local seat = char.Humanoid.SeatPart
-            -- ปรับจูนความแรงรถแบบ Smooth ป้องกันระบบ Anti-cheat ตรวจจับ
-            seat.MaxSpeed = 100 * getgenv().EliteConfig.SpeedMult
-            seat.Torque = 10000 * getgenv().EliteConfig.SpeedMult
-        end
+-- // Check Status //
+local function IsShootable(p)
+    local stats = p:FindFirstChild("leaderstats")
+    if stats then
+        local wanted = stats:FindFirstChild("Wanted") or stats:FindFirstChild("Bounty") or stats:FindFirstChild("Stars")
+        if wanted and wanted.Value > 0 then return true end
     end
-end)
+    if p.Team and (p.Team.Name:find("Police") or p.Team.Name:find("Sheriff")) then return true end
+    return false
+end
 
--- // Aim & ESP Logic (เหมือนเวอร์ชันก่อนหน้า) //
+-- // Auto Shoot Logic //
+local lastShoot = 0
+local function FireWeapon()
+    if tick() - lastShoot > 0.1 then -- หน่วงเวลาเล็กน้อยกันเอ๋อ
+        -- จำลองการคลิกเมาส์/กดปุ่มยิง
+        mouse1click() 
+        lastShoot = tick()
+    end
+end
+
+-- // Main Loop //
 _RUN.RenderStepped:Connect(function()
+    -- No Fog
+    if getgenv().EliteConfig.NoFog then
+        _LIGHTING.FogEnd = 1e6
+        _LIGHTING.Atmosphere.Density = 0
+    end
+
+    -- Aim & Auto Shoot
     if getgenv().EliteConfig.AimEnabled then
         local target, shortestDist = nil, getgenv().EliteConfig.FOV
+        local screenCenter = Vector2.new(_CAMERA.ViewportSize.X/2, _CAMERA.ViewportSize.Y/2)
+
         for _, p in pairs(game.Players:GetPlayers()) do
-            if p ~= _LP and p.Character and p.Character:FindFirstChild(getgenv().EliteConfig.AimPart) then
+            if p ~= _LP and p.Character and p.Character:FindFirstChild(getgenv().EliteConfig.AimPart) and IsShootable(p) then
                 if p.Character.Humanoid.Health > 0 then
                     local pos, screen = _CAMERA:WorldToViewportPoint(p.Character[getgenv().EliteConfig.AimPart].Position)
                     if screen then
-                        local mag = (Vector2.new(pos.X, pos.Y) - Vector2.new(_CAMERA.ViewportSize.X/2, _CAMERA.ViewportSize.Y/2)).Magnitude
+                        local mag = (Vector2.new(pos.X, pos.Y) - screenCenter).Magnitude
                         if mag < shortestDist then shortestDist = mag; target = p end
                     end
                 end
             end
         end
+
         if target then
             local tPart = target.Character[getgenv().EliteConfig.AimPart]
             local dist = (_LP.Character.HumanoidRootPart.Position - tPart.Position).Magnitude
             local finalPos = tPart.Position + (tPart.AssemblyLinearVelocity * (dist / getgenv().EliteConfig.BulletSpeed))
-            _CAMERA.CFrame = CFrame.new(_CAMERA.CFrame.Position, finalPos + Vector3.new(0, (dist/500), 0))
+            _CAMERA.CFrame = CFrame.new(_CAMERA.CFrame.Position, finalPos + Vector3.new(0, (dist / 500), 0))
+            
+            -- ถ้าเปิด Auto Shoot และเป้าอยู่ใกล้จุดกึ่งกลาง (ล็อกติดแล้ว) ให้ยิง
+            if getgenv().EliteConfig.AutoShoot and shortestDist < 20 then
+                FireWeapon()
+            end
         end
     end
 end)
 
--- (ESP Logic ยังคงอยู่ครบถ้วนสำหรับการส่องอาชีพและระยะทาง)
+-- // Vehicle Boost //
+_RUN.Heartbeat:Connect(function()
+    if getgenv().EliteConfig.VehicleTune then
+        local char = _LP.Character
+        if char and char:FindFirstChild("Humanoid") and char.Humanoid.SeatPart then
+            local seat = char.Humanoid.SeatPart
+            if seat:IsA("VehicleSeat") and seat.Throttle == 1 then
+                seat.Parent:TranslateBy(seat.CFrame.LookVector * (getgenv().EliteConfig.SpeedMult / 10))
+            end
+        end
+    end
+end)
+
+-- // ESP System //
 local function CreateESP(p)
     local box = Drawing.new("Square"); box.Thickness = 1; box.Visible = false
-    local txt = Drawing.new("Text"); txt.Size = 13; txt.Outline = true; txt.Visible = false
+    local txt = Drawing.new("Text"); txt.Size = 16; txt.Outline = true; txt.Center = true; txt.Visible = false
+    txt.Color = Color3.new(1, 1, 1)
+
     _RUN.RenderStepped:Connect(function()
-        if getgenv().EliteConfig.ESPEnabled and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+        if getgenv().EliteConfig.ESPEnabled and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character.Humanoid.Health > 0 then
             local dist = (_LP.Character.HumanoidRootPart.Position - p.Character.HumanoidRootPart.Position).Magnitude
             if dist <= getgenv().EliteConfig.MaxDist then
                 local pos, screen = _CAMERA:WorldToViewportPoint(p.Character.HumanoidRootPart.Position)
                 if screen then
-                    box.Position = Vector2.new(pos.X - 25, pos.Y - 25); box.Size = Vector2.new(50, 50); box.Color = (p.Team and p.TeamColor.Color or Color3.new(1,1,1)); box.Visible = true
-                    txt.Position = Vector2.new(pos.X, pos.Y - 40); txt.Text = p.DisplayName .. "\n[" .. (p.Team and p.Team.Name or "Civ") .. "]"; txt.Visible = true
+                    local color = IsShootable(p) and Color3.new(1,0,0) or Color3.new(0,1,1)
+                    box.Size = Vector2.new(50, 50); box.Position = Vector2.new(pos.X - 25, pos.Y - 25); box.Color = color; box.Visible = true
+                    txt.Position = Vector2.new(pos.X, pos.Y - 50); txt.Text = (IsShootable(p) and "[TARGET]\n" or "") .. p.DisplayName .. "\n[" .. math.floor(dist) .. "m]"; txt.Visible = true
                 else box.Visible = false; txt.Visible = false end
             else box.Visible = false; txt.Visible = false end
         else box.Visible = false; txt.Visible = false end
