@@ -1,7 +1,7 @@
 --[[ 
-    PROJECT: ELITE HAMBURG (V53 - ADMIN DETECTOR)
-    FEATURES: Admin/Staff Notification, Balanced FOV 200, Smooth Aim, Glock 17
-    LOGIC: Real-time Player checking for Group Ranks and Admin IDs
+    PROJECT: ELITE HAMBURG (V55 - COMBAT PRO)
+    FEATURES: High-Speed Tracking, Smoothness 0.08, Enhanced Prediction
+    LOGIC: Reduced smoothing for aggressive tracking of fast-moving targets
 --]]
 
 if not game:IsLoaded() then game.Loaded:Wait() end
@@ -10,7 +10,6 @@ local _LP = game.Players.LocalPlayer
 local _CAMERA = workspace.CurrentCamera
 local _RUN = game:GetService("RunService")
 local _LIGHTING = game:GetService("Lighting")
-local _STARTERGUI = game:GetService("StarterGui")
 
 getgenv().EliteConfig = {
     -- Combat
@@ -20,166 +19,142 @@ getgenv().EliteConfig = {
     FOV = 200,
     CurrentMode = "G36",
     BulletSpeed = 1100,
-    Smoothness = 0.15,
+    Smoothness = 0.08, -- ปรับให้ลดลง (0.08) เพื่อให้ล็อกติดหนึบตามคนวิ่ง/ขับรถทัน
     ShowFOV = true,
     
     -- Utility
     ArrestAssist = false,
     VehicleBoost = false,
-    NoFog = false,
     SpeedValue = 300,
-    AdminNotify = true, -- เปิดระบบแจ้งเตือนแอดมิน
+    AdminNotify = true,
     
-    ThemeColor = Color3.fromRGB(255, 0, 0) -- เปลี่ยนเป็นสีแดงเตือนภัย
+    ThemeColor = Color3.fromRGB(255, 0, 200) -- สีชมพูนีออน (Combat Mode)
 }
 
 local WeaponSettings = {
     ["G36"] = {Speed = 1100, Color = Color3.fromRGB(0, 255, 150)},
-    ["Sniper"] = {Speed = 3000, Color = Color3.fromRGB(255, 50, 50)},
-    ["Glock 17"] = {Speed = 850, Color = Color3.fromRGB(255, 200, 0)}
+    ["Sniper"] = {Speed = 3500, Color = Color3.fromRGB(255, 50, 50)}, -- Sniper ยิงดักเร็วขึ้น
+    ["Glock 17"] = {Speed = 950, Color = Color3.fromRGB(255, 200, 0)} -- ปรับความเร็วกระสุนปืนพกเพิ่มนิดหน่อย
 }
 
 -- // UI System //
 local _G = Instance.new("ScreenGui", game.CoreGui)
-_G.Name = "Elite_V53_Admin"
+_G.Name = "Elite_V55_Combat"
 
 local _NotifyFrame = Instance.new("Frame", _G)
-_NotifyFrame.Size = UDim2.new(0, 250, 0, 60)
-_NotifyFrame.Position = UDim2.new(0.5, -125, 0.1, 0)
-_NotifyFrame.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+_NotifyFrame.Size = UDim2.new(0, 250, 0, 50)
+_NotifyFrame.Position = UDim2.new(0.5, -125, 0.05, 0)
+_NotifyFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 _NotifyFrame.Visible = false
 Instance.new("UICorner", _NotifyFrame)
 local _NotifyText = Instance.new("TextLabel", _NotifyFrame)
 _NotifyText.Size = UDim2.new(1, 0, 1, 0)
 _NotifyText.BackgroundTransparency = 1
-_NotifyText.TextColor3 = Color3.new(1, 1, 1)
+_NotifyText.TextColor3 = Color3.new(1, 0.2, 0.2)
 _NotifyText.Font = Enum.Font.GothamBold
 _NotifyText.TextSize = 14
-_NotifyText.Text = "ADMIN DETECTED!"
+_NotifyText.Text = ""
 
 local function ShowNotify(msg)
     _NotifyText.Text = msg
     _NotifyFrame.Visible = true
-    task.wait(5)
-    _NotifyFrame.Visible = false
+    task.delay(5, function() _NotifyFrame.Visible = false end)
 end
 
--- // Admin Detection Logic //
-local function CheckAdmin(p)
-    if p:GetRankInGroup(5141014) >= 200 or p:GetRankInGroup(32586675) >= 5 then -- เช็ค Rank ในกลุ่ม Hamburg
-        if getgenv().EliteConfig.AdminNotify then
-            ShowNotify("⚠️ ADMIN DETECTED: " .. p.Name)
-            _STARTERGUI:SetCore("SendNotification", {
-                Title = "ELITE WARNING",
-                Text = "Admin " .. p.Name .. " joined the game!",
-                Duration = 10
-            })
-        end
-    end
-end
-
-game.Players.PlayerAdded:Connect(CheckAdmin)
-for _, p in pairs(game.Players:GetPlayers()) do CheckAdmin(p) end
-
--- // Main UI //
-local _MainBtn = Instance.new("TextButton", _G)
-_MainBtn.Size = UDim2.new(0, 60, 0, 60)
-_MainBtn.Position = UDim2.new(0, 15, 0.4, 0)
-_MainBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-_MainBtn.Text = "ELITE\nV53"
-_MainBtn.TextColor3 = Color3.new(1, 0, 0)
-_MainBtn.Font = Enum.Font.GothamBold
-_MainBtn.Draggable = true
-Instance.new("UICorner", _MainBtn).CornerRadius = UDim.new(1, 0)
-local _Stroke = Instance.new("UIStroke", _MainBtn)
-_Stroke.Color = Color3.new(1, 0, 0)
-_Stroke.Thickness = 2
-
-local _Panel = Instance.new("Frame", _MainBtn)
-_Panel.Size = UDim2.new(0, 200, 0, 480)
-_Panel.Position = UDim2.new(1, 15, 0, -180)
-_Panel.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-_Panel.Visible = false
-Instance.new("UICorner", _Panel)
-
-local function AddBtn(text, y, callback)
-    local b = Instance.new("TextButton", _Panel)
-    b.Size = UDim2.new(0.9, 0, 0, 30)
-    b.Position = UDim2.new(0.05, 0, 0, y)
-    b.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    b.Text = text; b.TextColor3 = Color3.new(1, 1, 1)
-    b.Font = Enum.Font.SourceSansBold
-    Instance.new("UICorner", b)
-    b.MouseButton1Click:Connect(function() callback(b) end)
-    return b
-end
-
--- // UI Layout //
-AddBtn("AIMLOCK: OFF", 20, function(b) 
-    getgenv().EliteConfig.AimEnabled = not getgenv().EliteConfig.AimEnabled
-    b.Text = getgenv().EliteConfig.AimEnabled and "AIMLOCK: ON" or "AIMLOCK: OFF"
-end)
-
-AddBtn("AUTO SHOOT: OFF", 55, function(b)
-    getgenv().EliteConfig.AutoShoot = not getgenv().EliteConfig.AutoShoot
-    b.Text = getgenv().EliteConfig.AutoShoot and "AUTO SHOOT: ON" or "AUTO SHOOT: OFF"
-end)
-
-local Modes = {"G36", "Sniper", "Glock 17"}
-local CurrentIndex = 1
-AddBtn("MODE: G36", 90, function(b)
-    CurrentIndex = (CurrentIndex % #Modes) + 1
-    local m = Modes[CurrentIndex]
-    getgenv().EliteConfig.CurrentMode = m
-    getgenv().EliteConfig.BulletSpeed = WeaponSettings[m].Speed
-    b.Text = "MODE: " .. m
-end)
-
-AddBtn("ARREST ASSIST: OFF", 130, function(b)
-    getgenv().EliteConfig.ArrestAssist = not getgenv().EliteConfig.ArrestAssist
-    b.Text = "ARREST: " .. (getgenv().EliteConfig.ArrestAssist and "ON" or "OFF")
-end)
-
-AddBtn("BOOST (300): OFF", 170, function(b)
-    getgenv().EliteConfig.VehicleBoost = not getgenv().EliteConfig.VehicleBoost
-    b.Text = "BOOST: " .. (getgenv().EliteConfig.VehicleBoost and "ON" or "OFF")
-end)
-
-AddBtn("ADMIN NOTIFY: ON", 210, function(b)
-    getgenv().EliteConfig.AdminNotify = not getgenv().EliteConfig.AdminNotify
-    b.Text = "ADMIN NOTIFY: " .. (getgenv().EliteConfig.AdminNotify and "ON" or "OFF")
-end)
-
-AddBtn("SAFE EXIT", 400, function() _LP:Kick("Safe Exit Triggered") end)
-AddBtn("CLOSE", 440, function() _Panel.Visible = false end)
-
-_MainBtn.MouseButton1Click:Connect(function() _Panel.Visible = not _Panel.Visible end)
-
--- // Target Filter //
+-- // Targeting Logic //
 local function IsPolice(p)
     return p.Team and (p.Team.Name:lower():find("police") or p.Team.Name:lower():find("sheriff"))
 end
 
-local function ShouldTarget(p)
+local function GetTargetable(p)
     if not p.Character or not p.Character:FindFirstChild("Humanoid") or p.Character.Humanoid.Health <= 0 then return false end
     if p.Team == _LP.Team then return false end
+
     if IsPolice(_LP) then
         local stats = p:FindFirstChild("leaderstats")
         local wanted = stats and (stats:FindFirstChild("Wanted") or stats:FindFirstChild("Bounty") or stats:FindFirstChild("Stars"))
-        local tool = p.Character:FindFirstChildWhichIsA("Tool")
-        local hasGun = tool and (tool.Name:lower():find("gun") or tool.Name:lower():find("rifle"))
-        return (wanted and wanted.Value > 0) or hasGun
-    else return true end
+        local hasWanted = wanted and wanted.Value > 0
+        local hasGun = p.Character:FindFirstChildWhichIsA("Tool") and (p.Character:FindFirstChildWhichIsA("Tool").Name:lower():find("gun") or p.Character:FindFirstChildWhichIsA("Tool").Name:lower():find("rifle"))
+        return hasWanted or hasGun
+    else
+        return true
+    end
 end
 
--- // Loops //
+-- // ESP System //
+local ESP_Table = {}
+local function CreateESP(p)
+    local text = Drawing.new("Text")
+    text.Visible = false; text.Center = true; text.Outline = true; text.Font = 2; text.Size = 13
+    ESP_Table[p] = text
+end
+
+for _, p in pairs(game.Players:GetPlayers()) do if p ~= _LP then CreateESP(p) end end
+game.Players.PlayerAdded:Connect(function(p) if p ~= _LP then CreateESP(p) end end)
+
+-- // UI Menu //
+local _MainBtn = Instance.new("TextButton", _G)
+_MainBtn.Size = UDim2.new(0, 60, 0, 60); _MainBtn.Position = UDim2.new(0, 15, 0.4, 0); _MainBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 15); _MainBtn.Text = "ELITE\nV55"; _MainBtn.TextColor3 = getgenv().EliteConfig.ThemeColor; _MainBtn.Font = Enum.Font.GothamBold; _MainBtn.Draggable = true; Instance.new("UICorner", _MainBtn).CornerRadius = UDim.new(1, 0)
+local _Stroke = Instance.new("UIStroke", _MainBtn); _Stroke.Color = getgenv().EliteConfig.ThemeColor; _Stroke.Thickness = 2
+
+local _Panel = Instance.new("Frame", _MainBtn); _Panel.Size = UDim2.new(0, 200, 0, 420); _Panel.Position = UDim2.new(1, 15, 0, -180); _Panel.BackgroundColor3 = Color3.fromRGB(20, 20, 20); _Panel.Visible = false; Instance.new("UICorner", _Panel)
+
+local function AddBtn(text, y, callback)
+    local b = Instance.new("TextButton", _Panel); b.Size = UDim2.new(0.9, 0, 0, 30); b.Position = UDim2.new(0.05, 0, 0, y); b.BackgroundColor3 = Color3.fromRGB(40, 40, 45); b.Text = text; b.TextColor3 = Color3.new(1, 1, 1); b.Font = Enum.Font.SourceSansBold; Instance.new("UICorner", b)
+    b.MouseButton1Click:Connect(function() callback(b) end)
+    return b
+end
+
+AddBtn("AIMLOCK: OFF", 20, function(b) getgenv().EliteConfig.AimEnabled = not getgenv().EliteConfig.AimEnabled; b.Text = getgenv().EliteConfig.AimEnabled and "AIMLOCK: ON" or "AIMLOCK: OFF" end)
+AddBtn("SMOOTH: 0.08 (FAST)", 55, function(b)
+    if getgenv().EliteConfig.Smoothness == 0.08 then
+        getgenv().EliteConfig.Smoothness = 0.15
+        b.Text = "SMOOTH: 0.15 (LEGIT)"
+    else
+        getgenv().EliteConfig.Smoothness = 0.08
+        b.Text = "SMOOTH: 0.08 (FAST)"
+    end
+end)
+
+local Modes = {"G36", "Sniper", "Glock 17"}
+local ModeIdx = 1
+AddBtn("MODE: G36", 90, function(b)
+    ModeIdx = (ModeIdx % #Modes) + 1
+    local m = Modes[ModeIdx]
+    getgenv().EliteConfig.CurrentMode = m
+    getgenv().EliteConfig.BulletSpeed = WeaponSettings[m].Speed
+    b.Text = "MODE: " .. m
+    _MainBtn.TextColor3 = WeaponSettings[m].Color
+    _Stroke.Color = WeaponSettings[m].Color
+end)
+
+AddBtn("BOOST (300): OFF", 130, function(b) getgenv().EliteConfig.VehicleBoost = not getgenv().EliteConfig.VehicleBoost; b.Text = "BOOST: " .. (getgenv().EliteConfig.VehicleBoost and "ON" or "OFF") end)
+AddBtn("SAFE EXIT", 380, function() _LP:Kick("Safe Exit") end)
+_MainBtn.MouseButton1Click:Connect(function() _Panel.Visible = not _Panel.Visible end)
+
+-- // Main Combat Loop //
 _RUN.RenderStepped:Connect(function()
+    -- ESP logic
+    for p, text in pairs(ESP_Table) do
+        if p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character.Humanoid.Health > 0 then
+            local pos, screen = _CAMERA:WorldToViewportPoint(p.Character.HumanoidRootPart.Position)
+            if screen then
+                local dist = math.floor((_LP.Character.HumanoidRootPart.Position - p.Character.HumanoidRootPart.Position).Magnitude)
+                text.Position = Vector2.new(pos.X, pos.Y - 40)
+                text.Text = p.DisplayName .. " [" .. dist .. "m]"
+                text.Color = GetTargetable(p) and Color3.new(1, 0, 0) or Color3.new(1, 1, 1)
+                text.Visible = true
+            else text.Visible = false end
+        else text.Visible = false end
+    end
+
+    -- Aimlock logic (High-Speed Version)
     if getgenv().EliteConfig.AimEnabled then
         local tool = _LP.Character and _LP.Character:FindFirstChildWhichIsA("Tool")
         if tool and (tool.Name:lower():find("gun") or tool.Name:lower():find("glock") or tool.Name:lower():find("rifle")) then
             local target, shortestMag = nil, getgenv().EliteConfig.FOV
             for _, p in pairs(game.Players:GetPlayers()) do
-                if p ~= _LP and ShouldTarget(p) then
+                if p ~= _LP and GetTargetable(p) then
                     local tPart = p.Character:FindFirstChild(getgenv().EliteConfig.AimPart)
                     if tPart then
                         local pos, screen = _CAMERA:WorldToViewportPoint(tPart.Position)
@@ -193,14 +168,22 @@ _RUN.RenderStepped:Connect(function()
             if target then
                 local tPart = target.Character[getgenv().EliteConfig.AimPart]
                 local dist = (_LP.Character.HumanoidRootPart.Position - tPart.Position).Magnitude
-                local predictPos = tPart.Position + (tPart.AssemblyLinearVelocity * (dist / getgenv().EliteConfig.BulletSpeed))
-                _CAMERA.CFrame = _CAMERA.CFrame:Lerp(CFrame.new(_CAMERA.CFrame.Position, predictPos + Vector3.new(0, dist/800, 0)), getgenv().EliteConfig.Smoothness)
-                if getgenv().EliteConfig.AutoShoot and shortestMag < 25 then tool:Activate() end
+                
+                -- Dynamic Prediction Logic (จูนเพื่อคนวิ่งและรถ)
+                local velocity = tPart.AssemblyLinearVelocity
+                local predictPos = tPart.Position + (velocity * (dist / getgenv().EliteConfig.BulletSpeed))
+                
+                -- ปรับแก้กระสุนย้อย (Bullet Drop Offset)
+                local offset = Vector3.new(0, dist/700, 0)
+                
+                -- ล็อกแบบเกาะติด (Stickiness)
+                _CAMERA.CFrame = _CAMERA.CFrame:Lerp(CFrame.new(_CAMERA.CFrame.Position, predictPos + offset), getgenv().EliteConfig.Smoothness)
             end
         end
     end
 end)
 
+-- Vehicle Boost
 _RUN.Heartbeat:Connect(function()
     if getgenv().EliteConfig.VehicleBoost then
         local seat = _LP.Character and _LP.Character:FindFirstChild("Humanoid") and _LP.Character.Humanoid.SeatPart
