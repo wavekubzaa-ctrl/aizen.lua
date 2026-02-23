@@ -1,7 +1,7 @@
 --[[ 
-    PROJECT: UNIVERSAL ELITE (V35 - AUTO-EXECUTION)
-    FEATURES: Smart Predict, Criminal ESP, Auto-Shoot (Trigger Bot), Vehicle Boost
-    LOGIC: Detect Target -> Validate Damage -> Auto Fire
+    PROJECT: UNIVERSAL ELITE (V35.1 - ROBBERY UPDATE)
+    FEATURES: Smart Predict, Criminal ESP, Auto-Shoot, Vehicle Boost
+    NEW: Robbery ESP (Safe, ATM, Register) for EH
 --]]
 
 if not game:IsLoaded() then game.Loaded:Wait() end
@@ -14,8 +14,9 @@ local _INPUT = game:GetService("UserInputService")
 
 getgenv().EliteConfig = {
     AimEnabled = false,
-    AutoShoot = false, -- ระบบยิงออโต้
+    AutoShoot = false,
     ESPEnabled = false,
+    RobberyESP = false, -- เพิ่มใหม่
     AimPart = "HumanoidRootPart",
     FOV = 200,
     NoFog = false,
@@ -24,12 +25,12 @@ getgenv().EliteConfig = {
     BulletSpeed = 850,
     VehicleTune = false,
     SpeedMult = 20,
-    ThemeColor = Color3.fromRGB(255, 200, 0) -- สีทอง (โหมดพรีเมียม)
+    ThemeColor = Color3.fromRGB(255, 200, 0)
 }
 
 -- // UI Screen //
 local _G = Instance.new("ScreenGui", game.CoreGui)
-_G.Name = "BWH_Elite_V35"
+_G.Name = "BWH_Elite_V35_1"
 
 local _MainBtn = Instance.new("TextButton", _G)
 _MainBtn.Size = UDim2.new(0, 65, 0, 65)
@@ -41,10 +42,11 @@ _MainBtn.Font = Enum.Font.GothamBold
 _MainBtn.TextSize = 10
 _MainBtn.Draggable = true
 Instance.new("UICorner", _MainBtn).CornerRadius = UDim.new(1, 0)
-Instance.new("UIStroke", _MainBtn).Color = getgenv().EliteConfig.ThemeColor
+local _Stroke = Instance.new("UIStroke", _MainBtn)
+_Stroke.Color = getgenv().EliteConfig.ThemeColor
 
 local _Panel = Instance.new("Frame", _MainBtn)
-_Panel.Size = UDim2.new(0, 200, 0, 350)
+_Panel.Size = UDim2.new(0, 200, 0, 380) -- เพิ่มขนาดบอร์ดนิดหน่อย
 _Panel.Position = UDim2.new(1, 15, 0, -130)
 _Panel.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 _Panel.Visible = false
@@ -75,22 +77,22 @@ AddBtn("AUTO SHOOT: OFF", 55, function(b)
     b.BackgroundColor3 = getgenv().EliteConfig.AutoShoot and Color3.fromRGB(150, 100, 0) or Color3.fromRGB(35, 35, 35)
 end)
 
-AddBtn("TARGET: BODY/HEAD", 90, function(b)
-    getgenv().EliteConfig.AimPart = (getgenv().EliteConfig.AimPart == "HumanoidRootPart") and "Head" or "HumanoidRootPart"
-    b.Text = "TARGET: " .. (getgenv().EliteConfig.AimPart == "Head" and "HEAD" or "BODY")
+AddBtn("ROBBERY ESP: OFF", 90, function(b) -- ปุ่มที่เพิ่มใหม่
+    getgenv().EliteConfig.RobberyESP = not getgenv().EliteConfig.RobberyESP
+    b.Text = getgenv().EliteConfig.RobberyESP and "ROBBERY ESP: ON" or "ROBBERY ESP: OFF"
+    b.BackgroundColor3 = getgenv().EliteConfig.RobberyESP and Color3.fromRGB(0, 150, 150) or Color3.fromRGB(35, 35, 35)
 end)
 
-AddBtn("MODE: G36 / SNIPER", 125, function(b)
-    getgenv().EliteConfig.CurrentMode = (getgenv().EliteConfig.CurrentMode == "G36") and "SNIPER" or "G36"
-    getgenv().EliteConfig.BulletSpeed = (getgenv().EliteConfig.CurrentMode == "SNIPER") and 1500 or 850
-    b.Text = "MODE: " .. getgenv().EliteConfig.CurrentMode
+AddBtn("TARGET: BODY/HEAD", 125, function(b)
+    getgenv().EliteConfig.AimPart = (getgenv().EliteConfig.AimPart == "HumanoidRootPart") and "Head" or "HumanoidRootPart"
+    b.Text = "TARGET: " .. (getgenv().EliteConfig.AimPart == "Head" and "HEAD" or "BODY")
 end)
 
 AddBtn("CRIMINAL ESP: TOGGLE", 160, function() getgenv().EliteConfig.ESPEnabled = not getgenv().EliteConfig.ESPEnabled end)
 AddBtn("NO FOG: TOGGLE", 195, function() getgenv().EliteConfig.NoFog = not getgenv().EliteConfig.NoFog end)
 AddBtn("VEHICLE BOOST: TOGGLE", 230, function() getgenv().EliteConfig.VehicleTune = not getgenv().EliteConfig.VehicleTune end)
-AddBtn("SAFE LEAVE", 270, function() _LP:Kick("Safe Leave Activated") end, Color3.fromRGB(150, 0, 0))
-AddBtn("CLOSE", 310, function() _Panel.Visible = false end)
+AddBtn("SAFE LEAVE", 280, function() _LP:Kick("Safe Leave Activated") end, Color3.fromRGB(150, 0, 0))
+AddBtn("CLOSE", 320, function() _Panel.Visible = false end)
 
 _MainBtn.MouseButton1Click:Connect(function() _Panel.Visible = not _Panel.Visible end)
 
@@ -105,11 +107,26 @@ local function IsShootable(p)
     return false
 end
 
+-- // Robbery ESP Logic //
+local robLabels = {}
+local function CreateRobESP(obj)
+    local label = Drawing.new("Text")
+    label.Size = 14; label.Center = true; label.Outline = true; label.Visible = false
+    robLabels[obj] = label
+end
+
+local function ScanRobbery()
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if (obj.Name:find("Safe") or obj.Name:find("ATM") or obj.Name:find("Register")) and obj:IsA("BasePart") then
+            if not robLabels[obj] then CreateRobESP(obj) end
+        end
+    end
+end
+
 -- // Auto Shoot Logic //
 local lastShoot = 0
 local function FireWeapon()
-    if tick() - lastShoot > 0.1 then -- หน่วงเวลาเล็กน้อยกันเอ๋อ
-        -- จำลองการคลิกเมาส์/กดปุ่มยิง
+    if tick() - lastShoot > 0.1 then
         mouse1click() 
         lastShoot = tick()
     end
@@ -120,10 +137,10 @@ _RUN.RenderStepped:Connect(function()
     -- No Fog
     if getgenv().EliteConfig.NoFog then
         _LIGHTING.FogEnd = 1e6
-        _LIGHTING.Atmosphere.Density = 0
+        if _LIGHTING:FindFirstChild("Atmosphere") then _LIGHTING.Atmosphere.Density = 0 end
     end
 
-    -- Aim & Auto Shoot
+    -- Aim & Auto Shoot Logic (คงเดิม)
     if getgenv().EliteConfig.AimEnabled then
         local target, shortestDist = nil, getgenv().EliteConfig.FOV
         local screenCenter = Vector2.new(_CAMERA.ViewportSize.X/2, _CAMERA.ViewportSize.Y/2)
@@ -144,15 +161,35 @@ _RUN.RenderStepped:Connect(function()
             local tPart = target.Character[getgenv().EliteConfig.AimPart]
             local dist = (_LP.Character.HumanoidRootPart.Position - tPart.Position).Magnitude
             local finalPos = tPart.Position + (tPart.AssemblyLinearVelocity * (dist / getgenv().EliteConfig.BulletSpeed))
-            _CAMERA.CFrame = CFrame.new(_CAMERA.CFrame.Position, finalPos + Vector3.new(0, (dist / 500), 0))
+            _CAMERA.CFrame = _CAMERA.CFrame:Lerp(CFrame.new(_CAMERA.CFrame.Position, finalPos + Vector3.new(0, (dist / 500), 0)), 0.2)
             
-            -- ถ้าเปิด Auto Shoot และเป้าอยู่ใกล้จุดกึ่งกลาง (ล็อกติดแล้ว) ให้ยิง
-            if getgenv().EliteConfig.AutoShoot and shortestDist < 20 then
-                FireWeapon()
-            end
+            if getgenv().EliteConfig.AutoShoot and shortestDist < 20 then FireWeapon() end
         end
     end
+
+    -- Robbery ESP Render
+    for obj, label in pairs(robLabels) do
+        if getgenv().EliteConfig.RobberyESP and obj and obj.Parent then
+            local pos, screen = _CAMERA:WorldToViewportPoint(obj.Position)
+            if screen then
+                local dist = (_LP.Character.HumanoidRootPart.Position - obj.Position).Magnitude
+                if dist < 2000 then
+                    -- เช็คสถานะ EH: ปกติถ้าปล้นไม่ได้ EH จะมี Cooldown Part หรือความโปร่งใสเปลี่ยน
+                    local canRob = true
+                    if obj:FindFirstChild("Cooldown") or obj.Transparency > 0.5 then canRob = false end
+                    
+                    label.Position = Vector2.new(pos.X, pos.Y)
+                    label.Text = "[" .. obj.Name .. "]\n" .. (canRob and "READY" or "COOLDOWN") .. "\n[" .. math.floor(dist) .. "m]"
+                    label.Color = canRob and Color3.new(0,1,0) or Color3.new(1,0,0)
+                    label.Visible = true
+                else label.Visible = false end
+            else label.Visible = false end
+        else label.Visible = false end
+    end
 end)
+
+-- Scan Robbery Points Every 10s
+spawn(function() while wait(10) do pcall(ScanRobbery) end end)
 
 -- // Vehicle Boost //
 _RUN.Heartbeat:Connect(function()
@@ -167,7 +204,7 @@ _RUN.Heartbeat:Connect(function()
     end
 end)
 
--- // ESP System //
+-- // Criminal ESP System //
 local function CreateESP(p)
     local box = Drawing.new("Square"); box.Thickness = 1; box.Visible = false
     local txt = Drawing.new("Text"); txt.Size = 16; txt.Outline = true; txt.Center = true; txt.Visible = false
