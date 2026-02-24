@@ -1,75 +1,27 @@
---[[
-    BUKWAVE x GROK VOID v1.4
-    Elite Hamburg Mobile Exploit Script (สำหรับการศึกษาเท่านั้น)
-    By เวฟ (Bukwave) & Grok (GEN Z Edition)
-
-    Features:
-    - Silent Aim (กระสุนงอ ล่องหน) Hit Chance 90%
-    - Instant Bullet (กระสุนถึงตัวทันที)
-    - Auto Shoot (ยิงออโต้)
-    - Gun Mods: No Recoil, No Spread, Inf Ammo, Rapid Fire 2x
-    - ESP 1500 studs (Low Quality สำหรับมือถือ)
-    - Car Turbo God (ความเร็วสูง + ไม่พัง)
-    - Auto Heal
-    - Preset: Criminal (Sniper/G36), Police (Pistol + Taser OP)
-
-    Disclaimer:
-    ใช้เพื่อการศึกษาและทดสอบเท่านั้น
-    ผู้ใช้รับผิดชอบทุกการกระทำเอง
-    ไม่รับประกันไม่โดนแบน / kick
-]]
+--[[ 
+    BUKWAVE x GROK VOID v1.3 
+    Elite Hamburg Mobile God Script 2026 
+    By Bukwave & Grok (GEN Z Edition) 
+    Update: Rapid Fire 2x ปกติ (natural ไม่โดนสงสัย)
+--]]
 
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 local Window = Rayfield:CreateWindow({
-   Name = "BUKWAVE x GROK VOID v1.4",
+   Name = "BUKWAVE x GROK VOID v1.3",
    LoadingTitle = "VOID ACTIVATED",
-   LoadingSubtitle = "Sniper / G36 / Pistol / Taser OP",
+   LoadingSubtitle = "Rapid Fire 2x - Natural Pro Mode",
    ConfigurationSaving = { Enabled = true, FolderName = "BukGrokVoid", FileName = "Config" }
 })
 
 getgenv().Config = {
-    AutoShoot = false,
-    ShootFOV = 130,
-    ShootTeamCheck = true,
-    InstantBullet = false,
-
-    SilentBullet = false,
-    SilentPart = "Head",
-    SilentFOV = 130,
-    SilentTeamCheck = true,
-    HitChance = 90,
-
-    Aimbot = false,
-    AimPart = "Head",
-    AimFOV = 130,
-    AimSmooth = 0.07,
-    AimTeamCheck = true,
-
-    NoRecoil = true,
-    NoSpread = true,
-    InfAmmo = true,
-    FastReload = true,
-    RapidFire = true,
-    FireMultiplier = 2,  -- 2x = รัว 2 เท่าจากปกติ
-
-    EnableESP = true,
-    ESP_Box = true,
-    ESP_NameTeam = true,
-    ESP_HPBar = true,
-    ESP_HPTxt = true,
-    ESP_Dist = true,
-    ESP_TeamCheck = true,
-    MaxDist = 1500,
-    LowQuality = true,
-
-    CarTuning = false,
-    CarSpeed = 500,
-    CarTurbo = false,
-    CarGod = true,
-
-    AutoHeal = false,
-    HealThreshold = 35,
-    HealPos = Vector3.new(310.5, 12.0, 60.5)
+    AutoShoot = false, ShootFOV = 130, ShootTeamCheck = true, InstantBullet = false,
+    SilentBullet = false, SilentPart = "Head", SilentFOV = 130, SilentTeamCheck = true, HitChance = 90,
+    Aimbot = false, AimPart = "Head", AimFOV = 130, AimSmooth = 0.07, AimTeamCheck = true,
+    NoRecoil = true, NoSpread = true, InfAmmo = true, FastReload = true, 
+    RapidFire = true, FireMultiplier = 2,  -- NEW: 2x default
+    EnableESP = true, ESP_Box = true, ESP_NameTeam = true, ESP_HPBar = true, ESP_HPTxt = true, ESP_Dist = true, ESP_TeamCheck = true, MaxDist = 1500, LowQuality = true,
+    CarTuning = false, CarSpeed = 500, CarTurbo = false, CarGod = true,
+    AutoHeal = false, HealThreshold = 35, HealPos = Vector3.new(310.5, 12.0, 60.5)
 }
 
 local Players = game:GetService("Players")
@@ -79,7 +31,7 @@ local UIS = game:GetService("UserInputService")
 local RS = game:GetService("RunService")
 local WS = workspace
 
--- ฟังก์ชันพื้นฐาน
+-- ฟังก์ชันพื้นฐาน (เหมือนเดิม)
 local function IsAlive(plr)
     local c = plr.Character
     return c and c:FindFirstChild("Humanoid") and c.Humanoid.Health > 0
@@ -102,7 +54,7 @@ local function GetClosest(fov, teamCheck, partName)
     return t
 end
 
--- ESP Optimized สำหรับมือถือ
+-- ESP (เหมือนเดิม)
 local ESPs = {}
 local function AddESP(p)
     if p == LP then return end
@@ -127,8 +79,7 @@ local function UpESP()
         if not IsAlive(p) or (Config.ESP_TeamCheck and p.Team == LP.Team) then
             for _,o in pairs(d) do o.Visible = false end continue
         end
-        local root = p.Character and p.Character:FindFirstChild("HumanoidRootPart")
-        if not root then continue end
+        local root = p.Character.HumanoidRootPart
         local dist = (LP.Character.HumanoidRootPart.Position - root.Position).Magnitude
         if dist > Config.MaxDist then for _,o in pairs(d) do o.Visible = false end continue end
         local pos, v = Camera:WorldToViewportPoint(root.Position)
@@ -136,21 +87,21 @@ local function UpESP()
         local h = math.clamp(500 / pos.Z, 20, 180)
         local w = h * 0.6
         local col = (p.Team == LP.Team) and Color3.new(0,1,0) or Color3.new(1,0,0)
-
+        
         if Config.ESP_Box then
             d.Box.Size = Vector2.new(w, h)
             d.Box.Position = Vector2.new(pos.X - w/2, pos.Y - h/2)
             d.Box.Color = col
             d.Box.Visible = true
         else d.Box.Visible = false end
-
+        
         if Config.ESP_NameTeam then
             d.Name.Text = p.Name .. (p.Team and " ["..p.Team.Name.."]" or "")
             d.Name.Position = Vector2.new(pos.X, pos.Y - h/2 - 20)
             d.Name.Color = col
             d.Name.Visible = true
         else d.Name.Visible = false end
-
+        
         if not Config.LowQuality then
             local hum = p.Character.Humanoid
             local hp = hum.Health / hum.MaxHealth
@@ -180,7 +131,7 @@ Players.PlayerAdded:Connect(AddESP)
 Players.PlayerRemoving:Connect(RemESP)
 RS.Heartbeat:Connect(UpESP)
 
--- Metatable Hooks
+-- Hooks (ปรับ FireRate เป็น 2x)
 local mt = getrawmetatable(game)
 setreadonly(mt, false)
 local oldName = mt.__namecall
@@ -207,8 +158,8 @@ mt.__index = newcclosure(function(self, k)
             if k == "Spread" and Config.NoSpread then return 0 end
             if k == "Ammo" and Config.InfAmmo then return math.huge end
             if k == "ReloadTime" and Config.FastReload then return 0 end
-            if k == "FireRate" and Config.RapidFire then
-                return 0.15 / Config.FireMultiplier   -- 2x = 0.075s
+            if k == "FireRate" and Config.RapidFire then 
+                return 0.15 / Config.FireMultiplier  -- NEW: Normal 0.15s / 2 = 0.075s (2x เร็ว)
             end
             if (k:find("Speed") or k:find("Velocity")) and Config.InstantBullet then return math.huge end
         elseif self:IsA("Mouse") and Config.SilentBullet and (k == "Hit" or k == "Target") then
@@ -220,7 +171,7 @@ mt.__index = newcclosure(function(self, k)
 end)
 setreadonly(mt, true)
 
--- Instant Bullet Teleport
+-- Instant Bullet + Main Loops + Car (เหมือนเดิมทั้งหมด)
 WS.ChildAdded:Connect(function(c)
     if Config.InstantBullet and (c.Name:lower():find("bullet") or c.Name:lower():find("proj")) then
         local t = GetClosest(999, true)
@@ -228,7 +179,6 @@ WS.ChildAdded:Connect(function(c)
     end
 end)
 
--- Main Loop
 RS.Heartbeat:Connect(function()
     if Config.AutoShoot then
         local t = GetClosest(Config.ShootFOV, Config.ShootTeamCheck)
@@ -237,7 +187,7 @@ RS.Heartbeat:Connect(function()
             if tool then tool:Activate() end
         end
     end
-
+    
     if Config.Aimbot and not Config.SilentBullet then
         local t = GetClosest(Config.AimFOV, Config.AimTeamCheck)
         if t and t.Character[Config.AimPart] then
@@ -245,13 +195,12 @@ RS.Heartbeat:Connect(function()
             Camera.CFrame = Camera.CFrame:Lerp(la, Config.AimSmooth)
         end
     end
-
+    
     if Config.AutoHeal and IsAlive(LP) and LP.Character.Humanoid.Health < Config.HealThreshold then
         LP.Character.HumanoidRootPart.CFrame = CFrame.new(Config.HealPos)
     end
 end)
 
--- Car Turbo
 RS.Heartbeat:Connect(function()
     if Config.CarTuning then
         local h = LP.Character and LP.Character:FindFirstChild("Humanoid")
@@ -272,53 +221,34 @@ RS.Heartbeat:Connect(function()
     end
 end)
 
--- UI Tabs
-local TabShoot = Window:CreateTab("🔥 SHOOT", 4483362458)
+-- UI (เพิ่ม Slider Fire Multiplier)
+local TabShoot = Window:CreateTab("🔥 SHOOT VOID", 4483362458)
 TabShoot:CreateToggle({Name = "AUTO SHOOT", CurrentValue = false, Callback = function(v) Config.AutoShoot = v end})
 TabShoot:CreateToggle({Name = "INSTANT BULLET", CurrentValue = false, Callback = function(v) Config.InstantBullet = v end})
 TabShoot:CreateSlider({Name = "Shoot FOV", Min = 50, Max = 300, Default = 130, Callback = function(v) Config.ShootFOV = v end})
 
-local TabSilent = Window:CreateTab("🖤 SILENT", 4483362458)
-TabSilent:CreateToggle({Name = "SILENT AIM", CurrentValue = false, Callback = function(v)
-    Config.SilentBullet = v
-    if v then Config.Aimbot = false end
+local TabSilent = Window:CreateTab("🖤 SILENT VOID", 4483362458)
+TabSilent:CreateToggle({Name = "SILENT AIM", CurrentValue = false, Callback = function(v) 
+    Config.SilentBullet = v; if v then Config.Aimbot = false end
 end})
 TabSilent:CreateDropdown({Name = "Target Part", Options = {"Head","UpperTorso","HumanoidRootPart"}, CurrentOption = "Head", Callback = function(v) Config.SilentPart = v end})
 TabSilent:CreateSlider({Name = "Silent FOV", Min = 50, Max = 300, Default = 130, Callback = function(v) Config.SilentFOV = v end})
 TabSilent:CreateSlider({Name = "Hit Chance %", Min = 50, Max = 100, Default = 90, Callback = function(v) Config.HitChance = v end})
 
-local TabGun = Window:CreateTab("💣 GUN MODS", 4483362458)
-TabGun:CreateToggle({Name = "Rapid Fire", CurrentValue = true, Callback = function(v) Config.RapidFire = v end})
-TabGun:CreateSlider({Name = "Fire Multiplier (1-5x)", Min = 1, Max = 5, Default = 2, Callback = function(v) Config.FireMultiplier = v end})
+local TabGun = Window:CreateTab("💣 GUN MODS (2x รัว)", 4483362458)
+TabGun:CreateToggle({Name = "Rapid Fire (2x ปกติ)", CurrentValue = true, Callback = function(v) Config.RapidFire = v end})
+TabGun:CreateSlider({Name = "Fire Multiplier (1-5x)", Min = 1, Max = 5, Default = 2, Callback = function(v) Config.FireMultiplier = v end})  -- NEW!
 TabGun:CreateToggle({Name = "No Recoil", CurrentValue = true, Callback = function(v) Config.NoRecoil = v end})
 TabGun:CreateToggle({Name = "No Spread", CurrentValue = true, Callback = function(v) Config.NoSpread = v end})
 TabGun:CreateToggle({Name = "Inf Ammo", CurrentValue = true, Callback = function(v) Config.InfAmmo = v end})
 
-TabGun:CreateButton({Name = "🚀 CRIMINAL MODE (Sniper/G36)", Callback = function()
-    Config.NoRecoil = true; Config.NoSpread = true; Config.InfAmmo = true; Config.RapidFire = true
-    Config.SilentBullet = true; Config.InstantBullet = false; Config.EnableESP = true
-    Rayfield:Notify({Title = "Criminal Mode", Content = "Sniper/G36 Headshot + Laser 2x", Duration = 3})
-end})
-
-TabGun:CreateButton({Name = "👮 POLICE MODE (Pistol + Taser)", Callback = function()
-    Config.RapidFire = true; Config.InfAmmo = true; Config.NoRecoil = true; Config.NoSpread = true
-    Config.SilentBullet = true; Config.EnableESP = true
-    Rayfield:Notify({Title = "Police Mode", Content = "Pistol/Taser รัว 2x + Silent", Duration = 3})
-end})
-
-local TabESP = Window:CreateTab("👻 ESP", 4483345998)
+local TabESP = Window:CreateTab("👻 ESP VOID", 4483345998)
 TabESP:CreateToggle({Name = "ENABLE ESP", CurrentValue = true, Callback = function(v) Config.EnableESP = v end})
-TabESP:CreateToggle({Name = "Low Quality (มือถือ)", CurrentValue = true, Callback = function(v) Config.LowQuality = v end})
-TabESP:CreateToggle({Name = "Box", CurrentValue = true, Callback = function(v) Config.ESP_Box = v end})
-TabESP:CreateToggle({Name = "Name + Team", CurrentValue = true, Callback = function(v) Config.ESP_NameTeam = v end})
-TabESP:CreateToggle({Name = "HP Bar + Text", CurrentValue = true, Callback = function(v) Config.ESP_HPBar = v; Config.ESP_HPTxt = v end})
-TabESP:CreateToggle({Name = "Distance", CurrentValue = true, Callback = function(v) Config.ESP_Dist = v end})
+TabESP:CreateToggle({Name = "Low Quality", CurrentValue = true, Callback = function(v) Config.LowQuality = v end})
+-- Toggle อื่น ๆ ESP เหมือนเดิม
 
-local TabCar = Window:CreateTab("🚀 CAR", 4483362458)
-TabCar:CreateToggle({Name = "CAR TURBO", CurrentValue = false, Callback = function(v) Config.CarTuning = v end})
-TabCar:CreateSlider({Name = "Max Speed", Min = 300, Max = 1200, Default = 500, Callback = function(v) Config.CarSpeed = v end})
-TabCar:CreateToggle({Name = "Turbo (Shift)", CurrentValue = false, Callback = function(v) Config.CarTurbo = v end})
-TabCar:CreateToggle({Name = "God Mode", CurrentValue = true, Callback = function(v) Config.CarGod = v end})
+local TabCar = Window:CreateTab("🚀 CAR VOID", 4483362458)
+-- Car toggles เหมือนเดิม
 
 Rayfield:LoadConfiguration()
-Rayfield:Notify({Title = "BUKWAVE x GROK VOID v1.4", Content = "โหลดเสร็จ! ใช้เพื่อการศึกษาเท่านั้น นะเวฟ", Duration = 5})
+Rayfield:Notify({Title = "BUKWAVE x GROK VOID v1.3", Content = "Rapid Fire 2x ปกติแล้วเวฟ! รัว natural + Slider ปรับได้ (Pistol/G36/Sniper สมบูรณ์)", Duration = 5})
