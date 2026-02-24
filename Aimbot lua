@@ -1,73 +1,71 @@
 --[[ 
-    PROJECT: ELITE HAMBURG (V88 - DARK ELITE EDITION)
-    UPDATED: Added ESP Team Check & Integrated Full Visuals
-    CATEGORIES: Aimbot, Silent, GunMod, Visual, Misc
+    PROJECT: ELITE HAMBURG (V88 - ภาษาไทยฉบับสมบูรณ์)
+    FEATURES: ม็อดปืนจัดเต็ม, อิมบอทสมูท, กระสุนเงียบ, ระบบฮีล
+    UI: Rayfield Library (Thai Language)
 --]]
+
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Window = Rayfield:CreateWindow({
+   Name = "Elite Hamburg V88 - เมนูไทย",
+   LoadingTitle = "Dark Elite v88",
+   LoadingSubtitle = "ระบบม็อดปืนและช่วยเล่น",
+   ConfigurationSaving = { Enabled = false }
+})
+
+-- // การตั้งค่าหลัก //
+getgenv().Config = {
+    -- การต่อสู้ (Combat)
+    Aimbot = false,
+    AimPart = "Head",
+    AimFOV = 150,
+    AimSmooth = 0.08,
+    
+    SilentBullet = false,
+    SilentPart = "Head",
+    SilentFOV = 150,
+    SilentTeamCheck = true,
+    
+    -- ม็อดปืน (GunMod)
+    NoRecoil = false,      -- ลดแรงดีด
+    NoSpread = false,      -- กระสุนไม่ดีดออกข้าง
+    InfAmmo = false,       -- กระสุนไม่จำกัด
+    RapidFire = false,     -- ยิงเร็ว (ถ้าเซิร์ฟรองรับ)
+    FastReload = false,    -- รีโหลดเร็ว
+    
+    -- การแสดงผล (Visuals)
+    EnableESP = false,
+    ESP_TeamCheck = true,
+    
+    -- อื่นๆ (Misc)
+    AutoHeal = false,
+    HealThreshold = 30,
+    HealPos = Vector3.new(310.5, 12.0, 60.5)
+}
 
 local _LP = game:GetService("Players").LocalPlayer
 local _CAMERA = workspace.CurrentCamera
-local _RUN = game:GetService("RunService")
 local _UIS = game:GetService("UserInputService")
+local _RUN = game:GetService("RunService")
 
--- // MASTER SETTINGS //
-getgenv().DarkElite = {
-    -- Tab: Aimbot
-    Aimbot = false,
-    AimPart = "Head",
-    AimFOV = 200,
-    AimDeadCheck = true,
-    
-    -- Tab: Silent
-    SilentBullet = false,
-    SilentPart = "Head",
-    SilentFOV = 200,
-    SilentTeamCheck = true,
-    SilentDeadCheck = true,
-    
-    -- Tab: GunMod
-    NoRecoil = false,
-    NoSpread = false,
-    InfAmmo = false,
-    
-    -- Tab: Visual (ESP)
-    EnableESP = false,
-    ESP_Box = false,
-    ESP_Name = false,
-    ESP_Distance = false,
-    ESP_Health = false,
-    ESP_TeamCheck = true, -- ระบบเช็คทีม (ESP)
-    ESP_DeadCheck = true, 
-    
-    -- Tab: Misc
-    AutoHeal = false,
-    HealThreshold = 10,
-    HealPos = Vector3.new(310.5, 12.0, 60.5),
-    CarTuning = false,
-    TopSpeed = 350
-}
-
--- // CORE LOGIC: CHECK ALIVE //
+-- // ระบบตรวจสอบสถานะตัวละคร (ไม่ล็อกคนตาย) //
 local function IsAlive(plr)
-    if plr and plr.Character and plr.Character:FindFirstChild("Humanoid") and plr.Character:FindFirstChild("HumanoidRootPart") then
-        if plr.Character.Humanoid.Health > 0 then
-            return true
-        end
+    if plr and plr.Character and plr.Character:FindFirstChild("Humanoid") then
+        return plr.Character.Humanoid.Health > 0
     end
     return false
 end
 
--- // GET TARGET LOGIC //
-local function GetClosestTarget(fov)
+-- // ระบบค้นหาเป้าหมาย //
+local function GetClosestTarget(fov, teamCheck)
     local target = nil
     local maxDist = fov
-    
     for _, v in pairs(game.Players:GetPlayers()) do
         if v ~= _LP and IsAlive(v) then
-            if getgenv().DarkElite.SilentTeamCheck and v.Team == _LP.Team then continue end
-            
-            local pos, vis = _CAMERA:WorldToViewportPoint(v.Character.HumanoidRootPart.Position)
-            if vis then
-                local mag = (Vector2.new(pos.X, pos.Y) - _UIS:GetMouseLocation()).Magnitude
+            if teamCheck and v.Team == _LP.Team then continue end
+            local screenPos, onScreen = _CAMERA:WorldToViewportPoint(v.Character.HumanoidRootPart.Position)
+            if onScreen then
+                local mag = (Vector2.new(screenPos.X, screenPos.Y) - _UIS:GetMouseLocation()).Magnitude
                 if mag < maxDist then
                     maxDist = mag
                     target = v
@@ -78,115 +76,119 @@ local function GetClosestTarget(fov)
     return target
 end
 
--- // ESP SYSTEM //
-local function CreateESP(plr)
-    local Box = Drawing.new("Square")
-    Box.Visible = false; Box.Color = Color3.new(1, 0, 0); Box.Thickness = 1; Box.Filled = false
-    
-    local Name = Drawing.new("Text")
-    Name.Visible = false; Name.Color = Color3.new(1, 1, 1); Name.Size = 14; Name.Center = true; Name.Outline = true
-
-    local Connection;
-    Connection = _RUN.RenderStepped:Connect(function()
-        if getgenv().DarkElite.EnableESP and plr and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-            -- Team Check Logic
-            if getgenv().DarkElite.ESP_TeamCheck and plr.Team == _LP.Team then
-                Box.Visible = false; Name.Visible = false; return
-            end
-            -- Dead Check Logic
-            if getgenv().DarkElite.ESP_DeadCheck and not IsAlive(plr) then
-                Box.Visible = false; Name.Visible = false; return
-            end
-
-            local pos, vis = _CAMERA:WorldToViewportPoint(plr.Character.HumanoidRootPart.Position)
-            if vis then
-                if getgenv().DarkElite.ESP_Box then
-                    Box.Size = Vector2.new(2000 / pos.Z, 2500 / pos.Z)
-                    Box.Position = Vector2.new(pos.X - Box.Size.X / 2, pos.Y - Box.Size.Y / 2)
-                    Box.Visible = true
-                else Box.Visible = false end
-
-                if getgenv().DarkElite.ESP_Name then
-                    Name.Text = plr.Name
-                    Name.Position = Vector2.new(pos.X, pos.Y - (2500 / pos.Z) / 2 - 15)
-                    Name.Visible = true
-                else Name.Visible = false end
-            else
-                Box.Visible = false; Name.Visible = false
-            end
-        else
-            Box.Visible = false; Name.Visible = false
-            if not plr or not plr.Parent then
-                Box:Remove(); Name:Remove(); Connection:Disconnect()
-            end
-        end
-    end)
-end
-
-for _, v in pairs(game.Players:GetPlayers()) do if v ~= _LP then CreateESP(v) end end
-game.Players.PlayerAdded:Connect(function(v) CreateESP(v) end)
-
--- // AIMBOT ENGINE //
+-- // ระบบการทำงานหลัก (Main Loops) //
 _RUN.RenderStepped:Connect(function()
-    if getgenv().DarkElite.Aimbot then
-        local target = GetClosestTarget(getgenv().DarkElite.AimFOV)
-        if target and target.Character:FindFirstChild(getgenv().DarkElite.AimPart) then
-            _CAMERA.CFrame = CFrame.new(_CAMERA.CFrame.Position, target.Character[getgenv().DarkElite.AimPart].Position)
+    -- ระบบล็อกเป้า (Aimbot)
+    if getgenv().Config.Aimbot then
+        local target = GetClosestTarget(getgenv().Config.AimFOV, true)
+        if target and IsAlive(target) and target.Character:FindFirstChild(getgenv().Config.Config.AimPart) then
+            local targetPos = target.Character[getgenv().Config.AimPart].Position
+            local lookAt = CFrame.new(_CAMERA.CFrame.Position, targetPos)
+            _CAMERA.CFrame = _CAMERA.CFrame:Lerp(lookAt, getgenv().Config.AimSmooth)
+        end
+    end
+    
+    -- ระบบฮีลอัตโนมัติ (Auto Heal)
+    if getgenv().Config.AutoHeal then
+        local hum = (_LP.Character and _LP.Character:FindFirstChild("Humanoid"))
+        if hum and hum.Health > 0 and hum.Health < getgenv().Config.HealThreshold then
+            _LP.Character.HumanoidRootPart.CFrame = CFrame.new(getgenv().Config.HealPos)
+            getgenv().Config.AutoHeal = false
+            Rayfield:Notify({Title = "ระบบฮีล", Content = "วาร์ปไปรักษาตัวที่เตียงเรียบร้อย", Duration = 3})
         end
     end
 end)
 
--- // SILENT BULLET ENGINE (METATABLE HOOK) //
-local mt = getrawmetatable(game); setreadonly(mt, false); local oldNamecall = mt.__namecall
+-- // ระบบม็อดปืน (Gun Mod Engines) //
+local mt = getrawmetatable(game); setreadonly(mt, false)
+local oldNamecall = mt.__namecall; local oldIndex = mt.__index
+
 mt.__namecall = newcclosure(function(self, ...)
-    local args = {...}
-    local method = getnamecallmethod()
-    
-    if getgenv().DarkElite.SilentBullet and method == "FindPartOnRayWithIgnoreList" then
-        local target = GetClosestTarget(getgenv().DarkElite.SilentFOV)
-        if target and target.Character:FindFirstChild(getgenv().DarkElite.SilentPart) then
-            args[1] = Ray.new(_CAMERA.CFrame.Position, (target.Character[getgenv().DarkElite.SilentPart].Position - _CAMERA.CFrame.Position).Unit * 1000)
+    local args = {...}; local method = getnamecallmethod()
+    if not checkcaller() and getgenv().Config.SilentBullet and method == "FindPartOnRayWithIgnoreList" then
+        local target = GetClosestTarget(getgenv().Config.SilentFOV, getgenv().Config.SilentTeamCheck)
+        if target and IsAlive(target) then
+            local partName = getgenv().Config.SilentPart
+            args[1] = Ray.new(_CAMERA.CFrame.Position, (target.Character[partName].Position - _CAMERA.CFrame.Position).Unit * 1000)
             return oldNamecall(self, unpack(args))
         end
     end
     return oldNamecall(self, ...)
 end)
+
+mt.__index = newcclosure(function(self, idx)
+    if not checkcaller() and self:IsA("Tool") then
+        if idx == "Recoil" and getgenv().Config.NoRecoil then return 0 end
+        if idx == "MaxSpread" and getgenv().Config.NoSpread then return 0 end
+        if idx == "Ammo" and getgenv().Config.InfAmmo then return 999 end
+        if idx == "ReloadTime" and getgenv().Config.FastReload then return 0 end
+        if idx == "FireRate" and getgenv().Config.RapidFire then return 0.01 end
+    end
+    return oldIndex(self, idx)
+end)
 setreadonly(mt, true)
 
--- // UI SETUP //
-local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
-local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 450, 0, 380); MainFrame.Position = UDim2.new(0.5, -225, 0.5, -190); MainFrame.BackgroundColor3 = Color3.fromRGB(18, 15, 25); MainFrame.BorderSizePixel = 0; MainFrame.Visible = false; Instance.new("UICorner", MainFrame)
+-- // สร้างเมนูภาษาไทย //
+local Tab1 = Window:CreateTab("ระบบต่อสู้", 4483362458)
+Tab1:CreateSection("ตั้งค่าการล็อกเป้า (ไม่ล็อกคนตาย)")
+Tab1:CreateToggle({
+   Name = "เปิดใช้งาน ล็อกเป้า (Aimbot)",
+   CurrentValue = false,
+   Callback = function(Value) getgenv().Config.Aimbot = Value end,
+})
+Tab1:CreateDropdown({
+   Name = "จุดที่ต้องการล็อก",
+   Options = {"Head", "Torso"},
+   CurrentOption = "Head",
+   Callback = function(Option) getgenv().Config.AimPart = Option end,
+})
 
-local TabBar = Instance.new("Frame", MainFrame); TabBar.Size = UDim2.new(1, -20, 0, 40); TabBar.Position = UDim2.new(0, 10, 0, 15); TabBar.BackgroundTransparency = 1
-local TabLayout = Instance.new("UIListLayout", TabBar); TabLayout.FillDirection = "Horizontal"; TabLayout.Padding = UDim.new(0, 4)
+Tab1:CreateSection("ตั้งค่ากระสุนเงียบ (Silent Bullet)")
+Tab1:CreateToggle({
+   Name = "เปิดใช้งาน กระสุนเงียบ",
+   CurrentValue = false,
+   Callback = function(Value) getgenv().Config.SilentBullet = Value end,
+})
+Tab1:CreateDropdown({
+   Name = "จุดที่กระสุนวิ่งไป",
+   Options = {"Head", "Torso"},
+   CurrentOption = "Head",
+   Callback = function(Option) getgenv().Config.SilentPart = Option end,
+})
 
-local Container = Instance.new("Frame", MainFrame); Container.Size = UDim2.new(1, -20, 1, -80); Container.Position = UDim2.new(0, 10, 0, 65); Container.BackgroundColor3 = Color3.fromRGB(12, 10, 18); Instance.new("UICorner", Container)
-local Scroll = Instance.new("ScrollingFrame", Container); Scroll.Size = UDim2.new(1, -10, 1, -10); Scroll.Position = UDim2.new(0, 5, 0, 5); Scroll.BackgroundTransparency = 1; Scroll.CanvasSize = UDim2.new(0, 0, 0, 1000); Scroll.ScrollBarThickness = 2
-local ContentLayout = Instance.new("UIListLayout", Scroll); ContentLayout.Padding = UDim.new(0, 6)
+local Tab2 = Window:CreateTab("ม็อดปืน", 4483362458)
+Tab2:CreateToggle({
+   Name = "ลดแรงดีด (No Recoil)",
+   CurrentValue = false,
+   Callback = function(Value) getgenv().Config.NoRecoil = Value end,
+})
+Tab2:CreateToggle({
+   Name = "ลดกระสุนกระจาย (No Spread)",
+   CurrentValue = false,
+   Callback = function(Value) getgenv().Config.NoSpread = Value end,
+})
+Tab2:CreateToggle({
+   Name = "กระสุนไม่จำกัด (Inf Ammo)",
+   CurrentValue = false,
+   Callback = function(Value) getgenv().Config.InfAmmo = Value end,
+})
+Tab2:CreateToggle({
+   Name = "รีโหลดเร็ว (Fast Reload)",
+   CurrentValue = false,
+   Callback = function(Value) getgenv().Config.FastReload = Value end,
+})
 
-local function CreateTab(name)
-    local btn = Instance.new("TextButton", TabBar); btn.Size = UDim2.new(0, 82, 1, 0); btn.BackgroundColor3 = Color3.fromRGB(35, 30, 50); btn.Text = name; btn.TextColor3 = Color3.new(0.7, 0.7, 0.7); btn.Font = "GothamBold"; btn.TextSize = 10; Instance.new("UICorner", btn)
-    return btn
-end
+local Tab3 = Window:CreateTab("ช่วยเหลืออื่นๆ", 4483362458)
+Tab3:CreateToggle({
+   Name = "วาร์ปฮีลอัตโนมัติ (เลือดน้อย)",
+   CurrentValue = false,
+   Callback = function(Value) getgenv().Config.AutoHeal = Value end,
+})
+Tab3:CreateButton({
+   Name = "วาร์ปไปเตียงพยาบาลทันที",
+   Callback = function() 
+       if _LP.Character then _LP.Character.HumanoidRootPart.CFrame = CFrame.new(getgenv().Config.HealPos) end
+   end,
+})
 
-local function CreateToggle(text, key)
-    local btn = Instance.new("TextButton", Scroll); btn.Size = UDim2.new(1, 0, 0, 38); btn.BackgroundColor3 = Color3.fromRGB(28, 25, 38); btn.Text = "  " .. text .. ": OFF"; btn.TextColor3 = Color3.new(1, 1, 1); btn.TextXAlignment = "Left"; btn.Font = "Gotham"; btn.TextSize = 12; Instance.new("UICorner", btn)
-    local function Upd()
-        btn.Text = "  " .. text .. (getgenv().DarkElite[key] and ": ON" or ": OFF")
-        btn.TextColor3 = getgenv().DarkElite[key] and Color3.fromRGB(160, 80, 255) or Color3.new(1, 1, 1)
-    end
-    btn.MouseButton1Click:Connect(function() getgenv().DarkElite[key] = not getgenv().DarkElite[key]; Upd() end)
-    Upd()
-end
-
-local function Clear() for _,v in pairs(Scroll:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end end
-
-CreateTab("AIM").MouseButton1Click:Connect(function() Clear(); CreateToggle("Aimbot", "Aimbot"); CreateToggle("Dead Check", "AimDeadCheck") end)
-CreateTab("SILENT").MouseButton1Click:Connect(function() Clear(); CreateToggle("Silent Bullet", "SilentBullet"); CreateToggle("Team Check", "SilentTeamCheck"); CreateToggle("Dead Check", "SilentDeadCheck") end)
-CreateTab("GUNMOD").MouseButton1Click:Connect(function() Clear(); CreateToggle("No Recoil", "NoRecoil"); CreateToggle("Inf Ammo", "InfAmmo") end)
-CreateTab("VISUAL").MouseButton1Click:Connect(function() Clear(); CreateToggle("Master Visuals", "EnableESP"); CreateToggle("Show Box", "ESP_Box"); CreateToggle("Show Name", "ESP_Name"); CreateToggle("Team Check", "ESP_TeamCheck") end)
-CreateTab("MISC").MouseButton1Click:Connect(function() Clear(); CreateToggle("Auto Heal", "AutoHeal"); CreateToggle("Car Tuning", "CarTuning") end)
-
-local MobBtn = Instance.new("TextButton", ScreenGui); MobBtn.Size = UDim2.new(0, 50, 0, 50); MobBtn.Position = UDim2.new(0, 10, 0.5, -25); MobBtn.BackgroundColor3 = Color3.fromRGB(160, 80, 255); MobBtn.Text = "V88"; Instance.new("UICorner", MobBtn)
-MobBtn.MouseButton1Click:Connect(function() MainFrame.Visible = not MainFrame.Visible end)
+Rayfield:LoadConfiguration()
