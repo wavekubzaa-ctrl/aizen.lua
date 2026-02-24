@@ -1,8 +1,7 @@
 --[[ 
-    PROJECT: ELITE HAMBURG (V65 - TACTICAL FOV)
-    AIMLOCK: FOV 200 (Circle Visualized)
-    CONDITIONS: No Weapon/Team Check, Only Health > 0
-    FEATURES: All restored (Arrest, Safe Exit, Vehicle Boost)
+    PROJECT: ELITE HAMBURG (V69 - HEALTH ESP)
+    FEATURES: Added Health ESP (Number), Target Selector (Head/Body)
+    SETTINGS: FOV 250, Smoothness 0.15, Unlocked Conditions
 --]]
 
 -- // Cleanup //
@@ -18,10 +17,10 @@ local _LIGHTING = game:GetService("Lighting")
 getgenv().EliteConfig = {
     AimEnabled = false,
     AutoShoot = false,
-    AimPart = "HumanoidRootPart", 
-    FOV = 200, -- ตั้งค่าไว้ที่ 200 ตามขอ
+    AimPart = "Head",
+    FOV = 250,
     BulletSpeed = 1100,
-    Smoothness = 0.08,
+    Smoothness = 0.15,
     ESPEnabled = true,
     ArrestAssist = false,
     VehicleBoost = false,
@@ -30,10 +29,10 @@ getgenv().EliteConfig = {
     ThemeColor = Color3.fromRGB(0, 255, 180)
 }
 
--- // FOV Circle Visualization //
+-- // FOV Visual //
 local FOVCircle = Drawing.new("Circle")
-FOVCircle.Thickness = 1
-FOVCircle.Transparency = 0.7
+FOVCircle.Thickness = 1.5
+FOVCircle.Transparency = 0.8
 FOVCircle.Color = getgenv().EliteConfig.ThemeColor
 FOVCircle.Filled = false
 
@@ -44,20 +43,20 @@ local WeaponSettings = {
 }
 
 -- // UI Builder //
-local ScreenGui = Instance.new("ScreenGui", game.CoreGui); ScreenGui.Name = "Elite_V65"
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui); ScreenGui.Name = "Elite_V69"
 local MainBtn = Instance.new("TextButton", ScreenGui)
-MainBtn.Size = UDim2.new(0, 60, 0, 60); MainBtn.Position = UDim2.new(0, 20, 0.4, 0); MainBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 15); MainBtn.Text = "ELITE\nV65"; MainBtn.TextColor3 = getgenv().EliteConfig.ThemeColor; MainBtn.Font = Enum.Font.GothamBold; MainBtn.Draggable = true; Instance.new("UICorner", MainBtn).CornerRadius = UDim.new(1, 0)
+MainBtn.Size = UDim2.new(0, 60, 0, 60); MainBtn.Position = UDim2.new(0, 20, 0.4, 0); MainBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 15); MainBtn.Text = "ELITE\nV69"; MainBtn.TextColor3 = getgenv().EliteConfig.ThemeColor; MainBtn.Font = Enum.Font.GothamBold; MainBtn.Draggable = true; Instance.new("UICorner", MainBtn).CornerRadius = UDim.new(1, 0)
 local Stroke = Instance.new("UIStroke", MainBtn); Stroke.Color = getgenv().EliteConfig.ThemeColor; Stroke.Thickness = 2
 
 local Panel = Instance.new("Frame", MainBtn)
-Panel.Size = UDim2.new(0, 210, 0, 420); Panel.Position = UDim2.new(1, 15, 0, -180); Panel.BackgroundColor3 = Color3.fromRGB(25, 25, 30); Panel.Visible = false; Instance.new("UICorner", Panel)
+Panel.Size = UDim2.new(0, 210, 0, 420); Panel.Position = UDim2.new(1, 15, 0, -180); Panel.BackgroundColor3 = Color3.fromRGB(20, 20, 25); Panel.Visible = false; Instance.new("UICorner", Panel)
 local Scroll = Instance.new("ScrollingFrame", Panel)
-Scroll.Size = UDim2.new(1, -10, 1, -20); Scroll.Position = UDim2.new(0, 5, 0, 10); Scroll.BackgroundTransparency = 1; Scroll.CanvasSize = UDim2.new(0, 0, 0, 600); Scroll.ScrollBarThickness = 2
+Scroll.Size = UDim2.new(1, -10, 1, -20); Scroll.Position = UDim2.new(0, 5, 0, 10); Scroll.BackgroundTransparency = 1; Scroll.CanvasSize = UDim2.new(0, 0, 0, 650); Scroll.ScrollBarThickness = 2
 Instance.new("UIListLayout", Scroll).Padding = UDim.new(0, 5)
 
 local function AddToggle(text, config_key)
     local b = Instance.new("TextButton", Scroll)
-    b.Size = UDim2.new(1, -10, 0, 35); b.BackgroundColor3 = Color3.fromRGB(45, 45, 50); b.Text = text .. (getgenv().EliteConfig[config_key] and ": ON" or ": OFF"); b.TextColor3 = Color3.new(1, 1, 1); b.Font = Enum.Font.SourceSansBold; Instance.new("UICorner", b)
+    b.Size = UDim2.new(1, -10, 0, 35); b.BackgroundColor3 = Color3.fromRGB(40, 40, 45); b.Text = text .. (getgenv().EliteConfig[config_key] and ": ON" or ": OFF"); b.TextColor3 = Color3.new(1, 1, 1); b.Font = Enum.Font.SourceSansBold; Instance.new("UICorner", b)
     b.MouseButton1Click:Connect(function()
         getgenv().EliteConfig[config_key] = not getgenv().EliteConfig[config_key]
         b.Text = text .. (getgenv().EliteConfig[config_key] and ": ON" or ": OFF")
@@ -67,12 +66,25 @@ end
 AddToggle("AIMLOCK", "AimEnabled")
 AddToggle("AUTO SHOOT", "AutoShoot")
 AddToggle("ESP PLAYER", "ESPEnabled")
+
+local PartBtn = Instance.new("TextButton", Scroll)
+PartBtn.Size = UDim2.new(1, -10, 0, 35); PartBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45); PartBtn.Text = "TARGET: HEAD"; PartBtn.TextColor3 = Color3.new(1, 1, 1); PartBtn.Font = Enum.Font.SourceSansBold; Instance.new("UICorner", PartBtn)
+PartBtn.MouseButton1Click:Connect(function()
+    if getgenv().EliteConfig.AimPart == "Head" then
+        getgenv().EliteConfig.AimPart = "HumanoidRootPart"
+        PartBtn.Text = "TARGET: BODY"
+    else
+        getgenv().EliteConfig.AimPart = "Head"
+        PartBtn.Text = "TARGET: HEAD"
+    end
+end)
+
 AddToggle("ARREST ASSIST", "ArrestAssist")
 AddToggle("VEHICLE BOOST", "VehicleBoost")
 AddToggle("NO FOG", "NoFog")
 
 local ModeBtn = Instance.new("TextButton", Scroll)
-ModeBtn.Size = UDim2.new(1, -10, 0, 35); ModeBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 50); ModeBtn.Text = "MODE: G36"; ModeBtn.TextColor3 = Color3.new(1, 1, 1); ModeBtn.Font = Enum.Font.SourceSansBold; Instance.new("UICorner", ModeBtn)
+ModeBtn.Size = UDim2.new(1, -10, 0, 35); ModeBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45); ModeBtn.Text = "MODE: G36"; ModeBtn.TextColor3 = Color3.new(1, 1, 1); ModeBtn.Font = Enum.Font.SourceSansBold; Instance.new("UICorner", ModeBtn)
 local mIdx = 1; local Modes = {"G36", "Sniper", "Glock 17"}
 ModeBtn.MouseButton1Click:Connect(function()
     mIdx = (mIdx % #Modes) + 1; local m = Modes[mIdx]
@@ -82,7 +94,7 @@ ModeBtn.MouseButton1Click:Connect(function()
 end)
 
 local ExitBtn = Instance.new("TextButton", Scroll)
-ExitBtn.Size = UDim2.new(1, -10, 0, 35); ExitBtn.BackgroundColor3 = Color3.fromRGB(80, 20, 20); ExitBtn.Text = "SAFE EXIT"; ExitBtn.TextColor3 = Color3.new(1, 1, 1); ExitBtn.Font = Enum.Font.SourceSansBold; Instance.new("UICorner", ExitBtn)
+ExitBtn.Size = UDim2.new(1, -10, 0, 35); ExitBtn.BackgroundColor3 = Color3.fromRGB(100, 30, 30); ExitBtn.Text = "SAFE EXIT"; ExitBtn.TextColor3 = Color3.new(1, 1, 1); ExitBtn.Font = Enum.Font.SourceSansBold; Instance.new("UICorner", ExitBtn)
 ExitBtn.MouseButton1Click:Connect(function() 
     FOVCircle:Remove()
     _LP:Kick("Elite Hamburg - Safe Exit Successfully") 
@@ -90,10 +102,16 @@ end)
 
 MainBtn.MouseButton1Click:Connect(function() Panel.Visible = not Panel.Visible end)
 
--- // ESP & Targeting //
+-- // Logic //
 local function GetPlayerColor(p)
     if p.Team then return p.TeamColor.Color end
     return Color3.new(1, 1, 1)
+end
+
+local function GetHealthColor(hp)
+    if hp > 70 then return Color3.new(0, 1, 0) end -- เขียว
+    if hp > 30 then return Color3.new(1, 1, 0) end -- เหลือง
+    return Color3.new(1, 0, 0) -- แดง
 end
 
 local function GetTargetable(p)
@@ -106,32 +124,34 @@ end
 local ESP_Objects = {}
 local function CreateESP(p)
     local t = Drawing.new("Text"); t.Visible = false; t.Center = true; t.Outline = true; t.Font = 2; t.Size = 13
-    ESP_Objects[p] = t
+    local h = Drawing.new("Text"); h.Visible = false; h.Center = true; h.Outline = true; h.Font = 2; h.Size = 11
+    ESP_Objects[p] = {Text = t, Health = h}
 end
 for _, p in pairs(game.Players:GetPlayers()) do if p ~= _LP then CreateESP(p) end end
 game.Players.PlayerAdded:Connect(function(p) if p ~= _LP then CreateESP(p) end end)
-game.Players.PlayerRemoving:Connect(function(p) if ESP_Objects[p] then ESP_Objects[p]:Remove(); ESP_Objects[p] = nil end end)
 
--- // Loop //
 _RUN.RenderStepped:Connect(function()
-    -- Update FOV Circle
     FOVCircle.Visible = getgenv().EliteConfig.AimEnabled
     FOVCircle.Radius = getgenv().EliteConfig.FOV
     FOVCircle.Position = Vector2.new(_CAMERA.ViewportSize.X/2, _CAMERA.ViewportSize.Y/2)
 
     if getgenv().EliteConfig.NoFog then _LIGHTING.FogEnd = 999999; if _LIGHTING:FindFirstChild("Atmosphere") then _LIGHTING.Atmosphere.Density = 0 end end
 
-    for p, tag in pairs(ESP_Objects) do
+    for p, assets in pairs(ESP_Objects) do
+        local tag = assets.Text
+        local hp_tag = assets.Health
+        
         if getgenv().EliteConfig.ESPEnabled and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character.Humanoid.Health > 0 then
             local pos, screen = _CAMERA:WorldToViewportPoint(p.Character.HumanoidRootPart.Position)
             if screen then
-                local dist = math.floor((_LP.Character.HumanoidRootPart.Position - p.Character.HumanoidRootPart.Position).Magnitude)
-                tag.Position = Vector2.new(pos.X, pos.Y - 40); tag.Text = p.DisplayName .. " [" .. dist .. "m]"; tag.Color = GetPlayerColor(p); tag.Visible = true
-            else tag.Visible = false end
-        else tag.Visible = false end
+                local health = math.floor(p.Character.Humanoid.Health)
+                tag.Position = Vector2.new(pos.X, pos.Y - 40); tag.Text = p.DisplayName; tag.Color = GetPlayerColor(p); tag.Visible = true
+                
+                hp_tag.Position = Vector2.new(pos.X, pos.Y - 25); hp_tag.Text = "[" .. health .. " HP]"; hp_tag.Color = GetHealthColor(health); hp_tag.Visible = true
+            else tag.Visible = false; hp_tag.Visible = false end
+        else tag.Visible = false; hp_tag.Visible = false end
     end
 
-    -- Aimlock with FOV 200
     if getgenv().EliteConfig.AimEnabled then
         local target, shortestMag = nil, getgenv().EliteConfig.FOV
         for _, p in pairs(game.Players:GetPlayers()) do
@@ -141,10 +161,7 @@ _RUN.RenderStepped:Connect(function()
                     local pos, screen = _CAMERA:WorldToViewportPoint(tPart.Position)
                     if screen then
                         local mag = (Vector2.new(pos.X, pos.Y) - Vector2.new(_CAMERA.ViewportSize.X/2, _CAMERA.ViewportSize.Y/2)).Magnitude
-                        if mag < shortestMag then 
-                            shortestMag = mag
-                            target = p 
-                        end
+                        if mag < shortestMag then shortestMag = mag; target = p end
                     end
                 end
             end
@@ -155,9 +172,9 @@ _RUN.RenderStepped:Connect(function()
             local dist = (_LP.Character.HumanoidRootPart.Position - tPart.Position).Magnitude
             local predictPos = tPart.Position + (tPart.AssemblyLinearVelocity * (dist / getgenv().EliteConfig.BulletSpeed))
             
-            _CAMERA.CFrame = _CAMERA.CFrame:Lerp(CFrame.new(_CAMERA.CFrame.Position, predictPos + Vector3.new(0, dist/800, 0)), getgenv().EliteConfig.Smoothness)
+            _CAMERA.CFrame = _CAMERA.CFrame:Lerp(CFrame.new(_CAMERA.CFrame.Position, predictPos), getgenv().EliteConfig.Smoothness)
             
-            if getgenv().EliteConfig.AutoShoot and shortestMag < 35 then
+            if getgenv().EliteConfig.AutoShoot and shortestMag < 40 then
                 local tool = _LP.Character and _LP.Character:FindFirstChildWhichIsA("Tool")
                 if tool then tool:Activate() end
             end
