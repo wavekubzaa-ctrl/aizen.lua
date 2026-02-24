@@ -1,7 +1,7 @@
 --[[ 
-    PROJECT: ELITE HAMBURG (V88 - FULL MANUAL)
-    FEATURES: Full ESP (Name, Dist, Health, Team), Gun Mods, Auto Heal, Plate
-    CONTROL: All functions OFF by default for manual activation.
+    PROJECT: ELITE HAMBURG (V88 - DARK ELITE EDITION)
+    UPDATED: Added ESP Team Check & Integrated Full Visuals
+    CATEGORIES: Aimbot, Silent, GunMod, Visual, Misc
 --]]
 
 local _LP = game:GetService("Players").LocalPlayer
@@ -9,180 +9,184 @@ local _CAMERA = workspace.CurrentCamera
 local _RUN = game:GetService("RunService")
 local _UIS = game:GetService("UserInputService")
 
--- // MASTER SETTINGS (ALL OFF BY DEFAULT) //
-getgenv().EliteV88 = {
-    -- Visuals (ESP)
-    ESP_Master = false,
+-- // MASTER SETTINGS //
+getgenv().DarkElite = {
+    -- Tab: Aimbot
+    Aimbot = false,
+    AimPart = "Head",
+    AimFOV = 200,
+    AimDeadCheck = true,
+    
+    -- Tab: Silent
+    SilentBullet = false,
+    SilentPart = "Head",
+    SilentFOV = 200,
+    SilentTeamCheck = true,
+    SilentDeadCheck = true,
+    
+    -- Tab: GunMod
+    NoRecoil = false,
+    NoSpread = false,
+    InfAmmo = false,
+    
+    -- Tab: Visual (ESP)
+    EnableESP = false,
     ESP_Box = false,
     ESP_Name = false,
     ESP_Distance = false,
     ESP_Health = false,
-    ESP_TeamCheck = true, -- ตรวจสอบทีมเพื่อเปลี่ยนสี
+    ESP_TeamCheck = true, -- ระบบเช็คทีม (ESP)
+    ESP_DeadCheck = true, 
     
-    -- Combat & Gun Mods
-    SilentAim = false,
-    NoRecoil = false,
-    NoSpread = false,
-    InfAmmo = false,
-    RapidFire = false,
-    
-    -- Auto Heal
+    -- Tab: Misc
     AutoHeal = false,
-    HealThreshold = 30,
+    HealThreshold = 10,
     HealPos = Vector3.new(310.5, 12.0, 60.5),
-    
-    -- Vehicle & Player
     CarTuning = false,
-    TopSpeed = 350,
-    InfStamina = false,
-    NoClip = false,
-    WalkSpeed = 25,
-    PlateText = "ELITE V88"
+    TopSpeed = 350
 }
 
--- // UI CONSTRUCTION //
-local ScreenGui = Instance.new("ScreenGui", game.CoreGui); ScreenGui.Name = "Elite_V88"
-local MainBtn = Instance.new("TextButton", ScreenGui)
-MainBtn.Size = UDim2.new(0, 80, 0, 80); MainBtn.Position = UDim2.new(0, 20, 0.5, -40); MainBtn.BackgroundColor3 = Color3.fromRGB(10, 10, 10); MainBtn.Text = "ELITE\nV88"; MainBtn.TextColor3 = Color3.fromRGB(0, 255, 180); MainBtn.Font = Enum.Font.GothamBold; MainBtn.Draggable = true
-Instance.new("UICorner", MainBtn).CornerRadius = UDim.new(1, 0)
-Instance.new("UIStroke", MainBtn).Color = Color3.fromRGB(0, 255, 180); Instance.new("UIStroke", MainBtn).Thickness = 3
-
-local Panel = Instance.new("Frame", ScreenGui)
-Panel.Size = UDim2.new(0, 300, 0, 500); Panel.Position = UDim2.new(0.5, -150, 0.5, -250); Panel.BackgroundColor3 = Color3.fromRGB(15, 15, 18); Panel.Visible = false
-Instance.new("UICorner", Panel).CornerRadius = UDim.new(0, 15)
-
-local Scroll = Instance.new("ScrollingFrame", Panel)
-Scroll.Size = UDim2.new(1, -20, 1, -20); Scroll.Position = UDim2.new(0, 10, 0, 10); Scroll.BackgroundTransparency = 1; Scroll.CanvasSize = UDim2.new(0, 0, 0, 1800); Scroll.ScrollBarThickness = 4
-local Layout = Instance.new("UIListLayout", Scroll); Layout.Padding = UDim.new(0, 8); Layout.HorizontalAlignment = "Center"
-
-local function CreateToggle(txt, key)
-    local b = Instance.new("TextButton", Scroll)
-    b.Size = UDim2.new(0, 260, 0, 42); b.BackgroundColor3 = Color3.fromRGB(30, 30, 35); b.Text = txt .. ": OFF"; b.TextColor3 = Color3.new(1,1,1); b.Font = Enum.Font.GothamBold; Instance.new("UICorner", b)
-    
-    local function Update()
-        b.Text = txt .. (getgenv().EliteV88[key] and ": ON" or ": OFF")
-        b.TextColor3 = getgenv().EliteV88[key] and Color3.fromRGB(0, 255, 180) or Color3.new(1,1,1)
+-- // CORE LOGIC: CHECK ALIVE //
+local function IsAlive(plr)
+    if plr and plr.Character and plr.Character:FindFirstChild("Humanoid") and plr.Character:FindFirstChild("HumanoidRootPart") then
+        if plr.Character.Humanoid.Health > 0 then
+            return true
+        end
     end
-
-    b.MouseButton1Click:Connect(function()
-        getgenv().EliteV88[key] = not getgenv().EliteV88[key]
-        Update()
-    end)
-    Update()
+    return false
 end
 
-local function Section(txt)
-    local l = Instance.new("TextLabel", Scroll); l.Size = UDim2.new(1, 0, 0, 35); l.BackgroundTransparency = 1; l.Text = "-- " .. txt .. " --"; l.TextColor3 = Color3.fromRGB(0, 255, 180); l.Font = Enum.Font.GothamBold; l.TextSize = 13
-end
-
--- // UI SECTIONS //
-Section("VISUALS (ESP)")
-CreateToggle("MASTER ESP", "ESP_Master")
-CreateToggle("SHOW BOX", "ESP_Box")
-CreateToggle("SHOW NAME", "ESP_Name")
-CreateToggle("SHOW DISTANCE", "ESP_Distance")
-CreateToggle("SHOW HEALTH", "ESP_Health")
-
-Section("GUN MODIFICATIONS")
-CreateToggle("NO RECOIL", "NoRecoil")
-CreateToggle("NO SPREAD", "NoSpread")
-CreateToggle("INF AMMO", "InfAmmo")
-
-Section("AUTO HEAL SYSTEM")
-CreateToggle("ENABLE AUTO HEAL", "AutoHeal")
-
-Section("CUSTOM LICENSE PLATE")
-local PlateInput = Instance.new("TextBox", Scroll)
-PlateInput.Size = UDim2.new(0, 260, 0, 45); PlateInput.BackgroundColor3 = Color3.fromRGB(40, 40, 45); PlateInput.Text = "ELITE V88"; PlateInput.TextColor3 = Color3.new(1,1,1); PlateInput.Font = Enum.Font.SourceSansBold; Instance.new("UICorner", PlateInput)
-local SetPlateBtn = Instance.new("TextButton", Scroll)
-SetPlateBtn.Size = UDim2.new(0, 260, 0, 40); SetPlateBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 100); SetPlateBtn.Text = "APPLY PLATE"; SetPlateBtn.TextColor3 = Color3.new(1,1,1); SetPlateBtn.Font = Enum.Font.GothamBold; Instance.new("UICorner", SetPlateBtn)
-
-Section("COMBAT & PLAYER")
-CreateToggle("SILENT AIM", "SilentAim")
-CreateToggle("TUNING CAR", "CarTuning")
-CreateToggle("NO CLIP", "NoClip")
-
--- // LOGIC: ESP ENGINE //
-local function AddESP(p)
-    local box = Drawing.new("Square"); box.Visible = false; box.Thickness = 1; box.Filled = false
-    local name = Drawing.new("Text"); name.Visible = false; name.Size = 14; name.Center = true; name.Outline = true; name.Color = Color3.new(1,1,1)
+-- // GET TARGET LOGIC //
+local function GetClosestTarget(fov)
+    local target = nil
+    local maxDist = fov
     
-    _RUN.RenderStepped:Connect(function()
-        if p.Character and p.Character:FindFirstChild("HumanoidRootPart") and getgenv().EliteV88.ESP_Master then
-            local pos, vis = _CAMERA:WorldToViewportPoint(p.Character.HumanoidRootPart.Position)
+    for _, v in pairs(game.Players:GetPlayers()) do
+        if v ~= _LP and IsAlive(v) then
+            if getgenv().DarkElite.SilentTeamCheck and v.Team == _LP.Team then continue end
+            
+            local pos, vis = _CAMERA:WorldToViewportPoint(v.Character.HumanoidRootPart.Position)
             if vis then
-                local root = p.Character.HumanoidRootPart
-                local head = p.Character.Head
-                local root2d = _CAMERA:WorldToViewportPoint(root.Position)
-                local head2d = _CAMERA:WorldToViewportPoint(head.Position + Vector3.new(0, 0.5, 0))
-                
-                local charSize = (head2d.Y - root2d.Y) * 2
-                
-                if getgenv().EliteV88.ESP_Box then
-                    box.Visible = true
-                    box.Size = Vector2.new(1500/pos.Z, charSize)
-                    box.Position = Vector2.new(pos.X - box.Size.X/2, pos.Y - box.Size.Y/2)
-                    box.Color = (p.Team == _LP.Team) and Color3.new(0,1,0) or Color3.new(1,0,0)
-                else box.Visible = false end
-                
-                if getgenv().EliteV88.ESP_Name or getgenv().EliteV88.ESP_Distance or getgenv().EliteV88.ESP_Health then
-                    name.Visible = true
-                    local text = ""
-                    if getgenv().EliteV88.ESP_Name then text = text .. p.Name .. "\n" end
-                    if getgenv().EliteV88.ESP_Health then text = text .. "HP: " .. math.floor(p.Character.Humanoid.Health) .. " " end
-                    if getgenv().EliteV88.ESP_Distance then text = text .. "[" .. math.floor((root.Position - _LP.Character.HumanoidRootPart.Position).Magnitude) .. "m]" end
-                    name.Text = text
-                    name.Position = Vector2.new(pos.X, pos.Y - (box.Size.Y/2) - 25)
-                else name.Visible = false end
-            else box.Visible = false; name.Visible = false end
-        else box.Visible = false; name.Visible = false end
+                local mag = (Vector2.new(pos.X, pos.Y) - _UIS:GetMouseLocation()).Magnitude
+                if mag < maxDist then
+                    maxDist = mag
+                    target = v
+                end
+            end
+        end
+    end
+    return target
+end
+
+-- // ESP SYSTEM //
+local function CreateESP(plr)
+    local Box = Drawing.new("Square")
+    Box.Visible = false; Box.Color = Color3.new(1, 0, 0); Box.Thickness = 1; Box.Filled = false
+    
+    local Name = Drawing.new("Text")
+    Name.Visible = false; Name.Color = Color3.new(1, 1, 1); Name.Size = 14; Name.Center = true; Name.Outline = true
+
+    local Connection;
+    Connection = _RUN.RenderStepped:Connect(function()
+        if getgenv().DarkElite.EnableESP and plr and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+            -- Team Check Logic
+            if getgenv().DarkElite.ESP_TeamCheck and plr.Team == _LP.Team then
+                Box.Visible = false; Name.Visible = false; return
+            end
+            -- Dead Check Logic
+            if getgenv().DarkElite.ESP_DeadCheck and not IsAlive(plr) then
+                Box.Visible = false; Name.Visible = false; return
+            end
+
+            local pos, vis = _CAMERA:WorldToViewportPoint(plr.Character.HumanoidRootPart.Position)
+            if vis then
+                if getgenv().DarkElite.ESP_Box then
+                    Box.Size = Vector2.new(2000 / pos.Z, 2500 / pos.Z)
+                    Box.Position = Vector2.new(pos.X - Box.Size.X / 2, pos.Y - Box.Size.Y / 2)
+                    Box.Visible = true
+                else Box.Visible = false end
+
+                if getgenv().DarkElite.ESP_Name then
+                    Name.Text = plr.Name
+                    Name.Position = Vector2.new(pos.X, pos.Y - (2500 / pos.Z) / 2 - 15)
+                    Name.Visible = true
+                else Name.Visible = false end
+            else
+                Box.Visible = false; Name.Visible = false
+            end
+        else
+            Box.Visible = false; Name.Visible = false
+            if not plr or not plr.Parent then
+                Box:Remove(); Name:Remove(); Connection:Disconnect()
+            end
+        end
     end)
 end
 
--- // LOGIC: SYSTEMS //
-local mt = getrawmetatable(game); setreadonly(mt, false); local oldIndex = mt.__index
-mt.__index = newcclosure(function(self, idx)
-    if not checkcaller() and self:IsA("Tool") then
-        if idx == "Recoil" and getgenv().EliteV88.NoRecoil then return 0 end
-        if idx == "MaxSpread" and getgenv().EliteV88.NoSpread then return 0 end
-        if idx == "Ammo" and getgenv().EliteV88.InfAmmo then return 999 end
-        if idx == "Delay" and getgenv().EliteV88.RapidFire then return 0.05 end
+for _, v in pairs(game.Players:GetPlayers()) do if v ~= _LP then CreateESP(v) end end
+game.Players.PlayerAdded:Connect(function(v) CreateESP(v) end)
+
+-- // AIMBOT ENGINE //
+_RUN.RenderStepped:Connect(function()
+    if getgenv().DarkElite.Aimbot then
+        local target = GetClosestTarget(getgenv().DarkElite.AimFOV)
+        if target and target.Character:FindFirstChild(getgenv().DarkElite.AimPart) then
+            _CAMERA.CFrame = CFrame.new(_CAMERA.CFrame.Position, target.Character[getgenv().DarkElite.AimPart].Position)
+        end
     end
-    return oldIndex(self, idx)
+end)
+
+-- // SILENT BULLET ENGINE (METATABLE HOOK) //
+local mt = getrawmetatable(game); setreadonly(mt, false); local oldNamecall = mt.__namecall
+mt.__namecall = newcclosure(function(self, ...)
+    local args = {...}
+    local method = getnamecallmethod()
+    
+    if getgenv().DarkElite.SilentBullet and method == "FindPartOnRayWithIgnoreList" then
+        local target = GetClosestTarget(getgenv().DarkElite.SilentFOV)
+        if target and target.Character:FindFirstChild(getgenv().DarkElite.SilentPart) then
+            args[1] = Ray.new(_CAMERA.CFrame.Position, (target.Character[getgenv().DarkElite.SilentPart].Position - _CAMERA.CFrame.Position).Unit * 1000)
+            return oldNamecall(self, unpack(args))
+        end
+    end
+    return oldNamecall(self, ...)
 end)
 setreadonly(mt, true)
 
-SetPlateBtn.MouseButton1Click:Connect(function()
-    local char = _LP.Character
-    if char and char.Humanoid.SeatPart then
-        local car = char.Humanoid.SeatPart.Parent
-        for _, v in pairs(car:GetDescendants()) do
-            if (v:IsA("TextLabel") or v:IsA("TextBox")) and (v.Name:lower():find("plate") or v.Name:lower():find("text")) then
-                v.Text = PlateInput.Text
-            end
-        end
-    end
-end)
+-- // UI SETUP //
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Size = UDim2.new(0, 450, 0, 380); MainFrame.Position = UDim2.new(0.5, -225, 0.5, -190); MainFrame.BackgroundColor3 = Color3.fromRGB(18, 15, 25); MainFrame.BorderSizePixel = 0; MainFrame.Visible = false; Instance.new("UICorner", MainFrame)
 
-_RUN.Stepped:Connect(function()
-    local char = _LP.Character
-    if char and char:FindFirstChild("Humanoid") then
-        if getgenv().EliteV88.AutoHeal and char.Humanoid.Health > 0 and char.Humanoid.Health < getgenv().EliteV88.HealThreshold then
-            char.HumanoidRootPart.CFrame = CFrame.new(getgenv().EliteV88.HealPos)
-            task.wait(0.5)
-            for _, v in pairs(workspace:GetDescendants()) do
-                if v:IsA("ProximityPrompt") and (v.Parent.Position - char.HumanoidRootPart.Position).Magnitude < 10 then fireproximityprompt(v) end
-            end
-        end
-        if getgenv().EliteV88.InfStamina then char.Humanoid.WalkSpeed = getgenv().EliteV88.WalkSpeed end
-        if getgenv().EliteV88.NoClip then for _, part in pairs(char:GetChildren()) do if part:IsA("BasePart") then part.CanCollide = false end end end
-        local seat = char.Humanoid.SeatPart
-        if seat and getgenv().EliteV88.CarTuning and seat.Throttle ~= 0 then
-            seat.Velocity = seat.CFrame.LookVector * (seat.Throttle * getgenv().EliteV88.TopSpeed)
-        end
-    end
-end)
+local TabBar = Instance.new("Frame", MainFrame); TabBar.Size = UDim2.new(1, -20, 0, 40); TabBar.Position = UDim2.new(0, 10, 0, 15); TabBar.BackgroundTransparency = 1
+local TabLayout = Instance.new("UIListLayout", TabBar); TabLayout.FillDirection = "Horizontal"; TabLayout.Padding = UDim.new(0, 4)
 
-for _, v in pairs(game.Players:GetPlayers()) do if v ~= _LP then AddESP(v) end end
-game.Players.PlayerAdded:Connect(AddESP)
-MainBtn.MouseButton1Click:Connect(function() Panel.Visible = not Panel.Visible end)
+local Container = Instance.new("Frame", MainFrame); Container.Size = UDim2.new(1, -20, 1, -80); Container.Position = UDim2.new(0, 10, 0, 65); Container.BackgroundColor3 = Color3.fromRGB(12, 10, 18); Instance.new("UICorner", Container)
+local Scroll = Instance.new("ScrollingFrame", Container); Scroll.Size = UDim2.new(1, -10, 1, -10); Scroll.Position = UDim2.new(0, 5, 0, 5); Scroll.BackgroundTransparency = 1; Scroll.CanvasSize = UDim2.new(0, 0, 0, 1000); Scroll.ScrollBarThickness = 2
+local ContentLayout = Instance.new("UIListLayout", Scroll); ContentLayout.Padding = UDim.new(0, 6)
+
+local function CreateTab(name)
+    local btn = Instance.new("TextButton", TabBar); btn.Size = UDim2.new(0, 82, 1, 0); btn.BackgroundColor3 = Color3.fromRGB(35, 30, 50); btn.Text = name; btn.TextColor3 = Color3.new(0.7, 0.7, 0.7); btn.Font = "GothamBold"; btn.TextSize = 10; Instance.new("UICorner", btn)
+    return btn
+end
+
+local function CreateToggle(text, key)
+    local btn = Instance.new("TextButton", Scroll); btn.Size = UDim2.new(1, 0, 0, 38); btn.BackgroundColor3 = Color3.fromRGB(28, 25, 38); btn.Text = "  " .. text .. ": OFF"; btn.TextColor3 = Color3.new(1, 1, 1); btn.TextXAlignment = "Left"; btn.Font = "Gotham"; btn.TextSize = 12; Instance.new("UICorner", btn)
+    local function Upd()
+        btn.Text = "  " .. text .. (getgenv().DarkElite[key] and ": ON" or ": OFF")
+        btn.TextColor3 = getgenv().DarkElite[key] and Color3.fromRGB(160, 80, 255) or Color3.new(1, 1, 1)
+    end
+    btn.MouseButton1Click:Connect(function() getgenv().DarkElite[key] = not getgenv().DarkElite[key]; Upd() end)
+    Upd()
+end
+
+local function Clear() for _,v in pairs(Scroll:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end end
+
+CreateTab("AIM").MouseButton1Click:Connect(function() Clear(); CreateToggle("Aimbot", "Aimbot"); CreateToggle("Dead Check", "AimDeadCheck") end)
+CreateTab("SILENT").MouseButton1Click:Connect(function() Clear(); CreateToggle("Silent Bullet", "SilentBullet"); CreateToggle("Team Check", "SilentTeamCheck"); CreateToggle("Dead Check", "SilentDeadCheck") end)
+CreateTab("GUNMOD").MouseButton1Click:Connect(function() Clear(); CreateToggle("No Recoil", "NoRecoil"); CreateToggle("Inf Ammo", "InfAmmo") end)
+CreateTab("VISUAL").MouseButton1Click:Connect(function() Clear(); CreateToggle("Master Visuals", "EnableESP"); CreateToggle("Show Box", "ESP_Box"); CreateToggle("Show Name", "ESP_Name"); CreateToggle("Team Check", "ESP_TeamCheck") end)
+CreateTab("MISC").MouseButton1Click:Connect(function() Clear(); CreateToggle("Auto Heal", "AutoHeal"); CreateToggle("Car Tuning", "CarTuning") end)
+
+local MobBtn = Instance.new("TextButton", ScreenGui); MobBtn.Size = UDim2.new(0, 50, 0, 50); MobBtn.Position = UDim2.new(0, 10, 0.5, -25); MobBtn.BackgroundColor3 = Color3.fromRGB(160, 80, 255); MobBtn.Text = "V88"; Instance.new("UICorner", MobBtn)
+MobBtn.MouseButton1Click:Connect(function() MainFrame.Visible = not MainFrame.Visible end)
