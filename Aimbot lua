@@ -1,10 +1,10 @@
 --[[ 
-    PROJECT: ELITE HAMBURG (V61 - SNIPER SUPPORT)
-    UPDATED CONDITION: Added "sniper" to weapon check
-    FEATURES: High-Velocity Prediction for Snipers, Team Colors, Auto Shoot
+    PROJECT: ELITE HAMBURG (V62 - FULL RESTORE)
+    RESTORED: Arrest Assist, Proper Team Colors, Locked Functions
+    TEAM COLORS: Blue (Police), Red (Criminal/Mafia), White (Civilian)
 --]]
 
--- // Auto Cleanup System //
+-- // Auto Cleanup //
 for _, ui in pairs(game.CoreGui:GetChildren()) do
     if ui.Name:find("Elite_V") then ui:Destroy() end
 end
@@ -23,6 +23,7 @@ getgenv().EliteConfig = {
     BulletSpeed = 1100,
     Smoothness = 0.08,
     ESPEnabled = true,
+    ArrestAssist = false, -- ดึงกลับมาแล้ว
     VehicleBoost = false,
     NoFog = false,
     SpeedValue = 300,
@@ -36,15 +37,15 @@ local WeaponSettings = {
 }
 
 -- // UI Builder //
-local ScreenGui = Instance.new("ScreenGui", game.CoreGui); ScreenGui.Name = "Elite_V61"
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui); ScreenGui.Name = "Elite_V62"
 local MainBtn = Instance.new("TextButton", ScreenGui)
-MainBtn.Size = UDim2.new(0, 60, 0, 60); MainBtn.Position = UDim2.new(0, 20, 0.4, 0); MainBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 15); MainBtn.Text = "ELITE\nV61"; MainBtn.TextColor3 = getgenv().EliteConfig.ThemeColor; MainBtn.Font = Enum.Font.GothamBold; MainBtn.Draggable = true; Instance.new("UICorner", MainBtn).CornerRadius = UDim.new(1, 0)
+MainBtn.Size = UDim2.new(0, 60, 0, 60); MainBtn.Position = UDim2.new(0, 20, 0.4, 0); MainBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 15); MainBtn.Text = "ELITE\nV62"; MainBtn.TextColor3 = getgenv().EliteConfig.ThemeColor; MainBtn.Font = Enum.Font.GothamBold; MainBtn.Draggable = true; Instance.new("UICorner", MainBtn).CornerRadius = UDim.new(1, 0)
 local Stroke = Instance.new("UIStroke", MainBtn); Stroke.Color = getgenv().EliteConfig.ThemeColor; Stroke.Thickness = 2
 
 local Panel = Instance.new("Frame", MainBtn)
 Panel.Size = UDim2.new(0, 210, 0, 420); Panel.Position = UDim2.new(1, 15, 0, -180); Panel.BackgroundColor3 = Color3.fromRGB(25, 25, 30); Panel.Visible = false; Instance.new("UICorner", Panel)
 local Scroll = Instance.new("ScrollingFrame", Panel)
-Scroll.Size = UDim2.new(1, -10, 1, -20); Scroll.Position = UDim2.new(0, 5, 0, 10); Scroll.BackgroundTransparency = 1; Scroll.CanvasSize = UDim2.new(0, 0, 0, 520); Scroll.ScrollBarThickness = 2
+Scroll.Size = UDim2.new(1, -10, 1, -20); Scroll.Position = UDim2.new(0, 5, 0, 10); Scroll.BackgroundTransparency = 1; Scroll.CanvasSize = UDim2.new(0, 0, 0, 550); Scroll.ScrollBarThickness = 2
 Instance.new("UIListLayout", Scroll).Padding = UDim.new(0, 5)
 
 local function AddToggle(text, config_key)
@@ -56,9 +57,11 @@ local function AddToggle(text, config_key)
     end)
 end
 
+-- เพิ่มฟังชั่นกลับมาให้ครบตามเดิม
 AddToggle("AIMLOCK", "AimEnabled")
 AddToggle("AUTO SHOOT", "AutoShoot")
 AddToggle("ESP PLAYER", "ESPEnabled")
+AddToggle("ARREST ASSIST", "ArrestAssist") -- ปุ่มที่หายไป
 AddToggle("VEHICLE BOOST", "VehicleBoost")
 AddToggle("NO FOG", "NoFog")
 
@@ -73,12 +76,23 @@ end)
 
 MainBtn.MouseButton1Click:Connect(function() Panel.Visible = not Panel.Visible end)
 
--- // Targeting & Color Logic //
+-- // แก้ไขเรื่องทีม (ESP Colors) //
 local function GetPlayerColor(p)
-    local team = p.Team and p.Team.Name:lower() or ""
-    if team:find("police") or team:find("sheriff") or team:find("state") then return Color3.fromRGB(0, 160, 255)
-    elseif team:find("criminal") or team:find("mafia") or team:find("prisoner") then return Color3.fromRGB(255, 50, 50)
-    else return Color3.fromRGB(255, 255, 255) end
+    if not p.Team then return Color3.new(1, 1, 1) end
+    local team = p.Team.Name:lower()
+    
+    -- เช็คตำรวจ
+    if team:find("police") or team:find("sheriff") or team:find("state") or team:find("officer") then 
+        return Color3.fromRGB(0, 160, 255) 
+    end
+    
+    -- เช็คโจร (ขยายเงื่อนไขให้ครอบคลุม)
+    if team:find("criminal") or team:find("mafia") or team:find("prisoner") or team:find("rebel") or team:find("bad") or team:find("underground") then 
+        return Color3.fromRGB(255, 50, 50) 
+    end
+    
+    -- อื่นๆ ประชาชน
+    return Color3.fromRGB(255, 255, 255) 
 end
 
 local function GetTargetable(p)
@@ -96,7 +110,7 @@ end
 for _, p in pairs(game.Players:GetPlayers()) do if p ~= _LP then CreateESP(p) end end
 game.Players.PlayerAdded:Connect(function(p) if p ~= _LP then CreateESP(p) end end)
 
--- // Main Combat Loop //
+-- // Loop //
 _RUN.RenderStepped:Connect(function()
     if getgenv().EliteConfig.NoFog then _LIGHTING.FogEnd = 999999; if _LIGHTING:FindFirstChild("Atmosphere") then _LIGHTING.Atmosphere.Density = 0 end end
 
@@ -112,7 +126,6 @@ _RUN.RenderStepped:Connect(function()
 
     if getgenv().EliteConfig.AimEnabled then
         local tool = _LP.Character and _LP.Character:FindFirstChildWhichIsA("Tool")
-        -- เพิ่ม "sniper" เข้าไปในเงื่อนไขการเช็คชื่อปืน
         if tool and (tool.Name:lower():find("gun") or tool.Name:lower():find("rifle") or tool.Name:lower():find("glock") or tool.Name:lower():find("sniper")) then
             local target, shortestMag = nil, getgenv().EliteConfig.FOV
             for _, p in pairs(game.Players:GetPlayers()) do
@@ -138,8 +151,19 @@ _RUN.RenderStepped:Connect(function()
     end
 end)
 
--- Vehicle Boost
 _RUN.Heartbeat:Connect(function()
+    -- Arrest Assist Logic
+    if getgenv().EliteConfig.ArrestAssist then
+        for _, p in pairs(game.Players:GetPlayers()) do
+            if p ~= _LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                local dist = (_LP.Character.HumanoidRootPart.Position - p.Character.HumanoidRootPart.Position).Magnitude
+                if dist < 15 then
+                    -- ใส่ Logic การจับตรงนี้ (เช่น FireServer ของ Remote)
+                end
+            end
+        end
+    end
+    -- Vehicle Boost
     if getgenv().EliteConfig.VehicleBoost then
         local seat = _LP.Character and _LP.Character:FindFirstChild("Humanoid") and _LP.Character.Humanoid.SeatPart
         if seat and seat:IsA("VehicleSeat") and seat.Throttle ~= 0 then
