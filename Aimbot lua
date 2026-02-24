@@ -1,7 +1,8 @@
 --[[ 
-    PROJECT: ELITE HAMBURG (V63 - THE FINAL FIX)
-    FIXES: ESP Team Color (Now using TeamColor), Restored Safe Exit
-    STABILITY: Locked all functions to prevent disappearance
+    PROJECT: ELITE HAMBURG (V65 - TACTICAL FOV)
+    AIMLOCK: FOV 200 (Circle Visualized)
+    CONDITIONS: No Weapon/Team Check, Only Health > 0
+    FEATURES: All restored (Arrest, Safe Exit, Vehicle Boost)
 --]]
 
 -- // Cleanup //
@@ -18,8 +19,7 @@ getgenv().EliteConfig = {
     AimEnabled = false,
     AutoShoot = false,
     AimPart = "HumanoidRootPart", 
-    FOV = 200,
-    CurrentMode = "G36",
+    FOV = 200, -- ตั้งค่าไว้ที่ 200 ตามขอ
     BulletSpeed = 1100,
     Smoothness = 0.08,
     ESPEnabled = true,
@@ -30,6 +30,13 @@ getgenv().EliteConfig = {
     ThemeColor = Color3.fromRGB(0, 255, 180)
 }
 
+-- // FOV Circle Visualization //
+local FOVCircle = Drawing.new("Circle")
+FOVCircle.Thickness = 1
+FOVCircle.Transparency = 0.7
+FOVCircle.Color = getgenv().EliteConfig.ThemeColor
+FOVCircle.Filled = false
+
 local WeaponSettings = {
     ["G36"] = {Speed = 1100, Color = Color3.fromRGB(0, 255, 180)},
     ["Sniper"] = {Speed = 3500, Color = Color3.fromRGB(255, 50, 50)},
@@ -37,9 +44,9 @@ local WeaponSettings = {
 }
 
 -- // UI Builder //
-local ScreenGui = Instance.new("ScreenGui", game.CoreGui); ScreenGui.Name = "Elite_V63"
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui); ScreenGui.Name = "Elite_V65"
 local MainBtn = Instance.new("TextButton", ScreenGui)
-MainBtn.Size = UDim2.new(0, 60, 0, 60); MainBtn.Position = UDim2.new(0, 20, 0.4, 0); MainBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 15); MainBtn.Text = "ELITE\nV63"; MainBtn.TextColor3 = getgenv().EliteConfig.ThemeColor; MainBtn.Font = Enum.Font.GothamBold; MainBtn.Draggable = true; Instance.new("UICorner", MainBtn).CornerRadius = UDim.new(1, 0)
+MainBtn.Size = UDim2.new(0, 60, 0, 60); MainBtn.Position = UDim2.new(0, 20, 0.4, 0); MainBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 15); MainBtn.Text = "ELITE\nV65"; MainBtn.TextColor3 = getgenv().EliteConfig.ThemeColor; MainBtn.Font = Enum.Font.GothamBold; MainBtn.Draggable = true; Instance.new("UICorner", MainBtn).CornerRadius = UDim.new(1, 0)
 local Stroke = Instance.new("UIStroke", MainBtn); Stroke.Color = getgenv().EliteConfig.ThemeColor; Stroke.Thickness = 2
 
 local Panel = Instance.new("Frame", MainBtn)
@@ -57,7 +64,6 @@ local function AddToggle(text, config_key)
     end)
 end
 
--- // ฟังก์ชันทั้งหมดต้องอยู่ตรงนี้ //
 AddToggle("AIMLOCK", "AimEnabled")
 AddToggle("AUTO SHOOT", "AutoShoot")
 AddToggle("ESP PLAYER", "ESPEnabled")
@@ -72,30 +78,31 @@ ModeBtn.MouseButton1Click:Connect(function()
     mIdx = (mIdx % #Modes) + 1; local m = Modes[mIdx]
     getgenv().EliteConfig.CurrentMode = m; getgenv().EliteConfig.BulletSpeed = WeaponSettings[m].Speed
     ModeBtn.Text = "MODE: " .. m; MainBtn.TextColor3 = WeaponSettings[m].Color; Stroke.Color = WeaponSettings[m].Color
+    FOVCircle.Color = WeaponSettings[m].Color
 end)
 
--- ปุ่มออกที่หายไป
 local ExitBtn = Instance.new("TextButton", Scroll)
 ExitBtn.Size = UDim2.new(1, -10, 0, 35); ExitBtn.BackgroundColor3 = Color3.fromRGB(80, 20, 20); ExitBtn.Text = "SAFE EXIT"; ExitBtn.TextColor3 = Color3.new(1, 1, 1); ExitBtn.Font = Enum.Font.SourceSansBold; Instance.new("UICorner", ExitBtn)
-ExitBtn.MouseButton1Click:Connect(function() _LP:Kick("Elite Hamburg - Safe Exit Successfully") end)
+ExitBtn.MouseButton1Click:Connect(function() 
+    FOVCircle:Remove()
+    _LP:Kick("Elite Hamburg - Safe Exit Successfully") 
+end)
 
 MainBtn.MouseButton1Click:Connect(function() Panel.Visible = not Panel.Visible end)
 
--- // ระบบ ESP สีตามทีมที่แม่นยำ //
+-- // ESP & Targeting //
 local function GetPlayerColor(p)
-    if p.Team then
-        return p.TeamColor.Color -- ใช้สีจากทีมในเกมโดยตรง (โจรแดงก็แดงเลย)
-    end
+    if p.Team then return p.TeamColor.Color end
     return Color3.new(1, 1, 1)
 end
 
 local function GetTargetable(p)
-    if not p.Character or not p.Character:FindFirstChild("Humanoid") or p.Character.Humanoid.Health <= 0 then return false end
-    if p.Team == _LP.Team then return false end
-    return true
+    if p.Character and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
+        return true
+    end
+    return false
 end
 
--- // ESP System //
 local ESP_Objects = {}
 local function CreateESP(p)
     local t = Drawing.new("Text"); t.Visible = false; t.Center = true; t.Outline = true; t.Font = 2; t.Size = 13
@@ -105,8 +112,13 @@ for _, p in pairs(game.Players:GetPlayers()) do if p ~= _LP then CreateESP(p) en
 game.Players.PlayerAdded:Connect(function(p) if p ~= _LP then CreateESP(p) end end)
 game.Players.PlayerRemoving:Connect(function(p) if ESP_Objects[p] then ESP_Objects[p]:Remove(); ESP_Objects[p] = nil end end)
 
--- // Main Update Loop //
+-- // Loop //
 _RUN.RenderStepped:Connect(function()
+    -- Update FOV Circle
+    FOVCircle.Visible = getgenv().EliteConfig.AimEnabled
+    FOVCircle.Radius = getgenv().EliteConfig.FOV
+    FOVCircle.Position = Vector2.new(_CAMERA.ViewportSize.X/2, _CAMERA.ViewportSize.Y/2)
+
     if getgenv().EliteConfig.NoFog then _LIGHTING.FogEnd = 999999; if _LIGHTING:FindFirstChild("Atmosphere") then _LIGHTING.Atmosphere.Density = 0 end end
 
     for p, tag in pairs(ESP_Objects) do
@@ -119,34 +131,40 @@ _RUN.RenderStepped:Connect(function()
         else tag.Visible = false end
     end
 
+    -- Aimlock with FOV 200
     if getgenv().EliteConfig.AimEnabled then
-        local tool = _LP.Character and _LP.Character:FindFirstChildWhichIsA("Tool")
-        if tool and (tool.Name:lower():find("gun") or tool.Name:lower():find("rifle") or tool.Name:lower():find("glock") or tool.Name:lower():find("sniper")) then
-            local target, shortestMag = nil, getgenv().EliteConfig.FOV
-            for _, p in pairs(game.Players:GetPlayers()) do
-                if p ~= _LP and GetTargetable(p) then
-                    local tPart = p.Character:FindFirstChild(getgenv().EliteConfig.AimPart)
-                    if tPart then
-                        local pos, screen = _CAMERA:WorldToViewportPoint(tPart.Position)
-                        if screen then
-                            local mag = (Vector2.new(pos.X, pos.Y) - Vector2.new(_CAMERA.ViewportSize.X/2, _CAMERA.ViewportSize.Y/2)).Magnitude
-                            if mag < shortestMag then shortestMag = mag; target = p end
+        local target, shortestMag = nil, getgenv().EliteConfig.FOV
+        for _, p in pairs(game.Players:GetPlayers()) do
+            if p ~= _LP and GetTargetable(p) then
+                local tPart = p.Character:FindFirstChild(getgenv().EliteConfig.AimPart)
+                if tPart then
+                    local pos, screen = _CAMERA:WorldToViewportPoint(tPart.Position)
+                    if screen then
+                        local mag = (Vector2.new(pos.X, pos.Y) - Vector2.new(_CAMERA.ViewportSize.X/2, _CAMERA.ViewportSize.Y/2)).Magnitude
+                        if mag < shortestMag then 
+                            shortestMag = mag
+                            target = p 
                         end
                     end
                 end
             end
-            if target then
-                local tPart = target.Character[getgenv().EliteConfig.AimPart]
-                local dist = (_LP.Character.HumanoidRootPart.Position - tPart.Position).Magnitude
-                local predictPos = tPart.Position + (tPart.AssemblyLinearVelocity * (dist / getgenv().EliteConfig.BulletSpeed))
-                _CAMERA.CFrame = _CAMERA.CFrame:Lerp(CFrame.new(_CAMERA.CFrame.Position, predictPos + Vector3.new(0, dist/800, 0)), getgenv().EliteConfig.Smoothness)
-                if getgenv().EliteConfig.AutoShoot and shortestMag < 35 then tool:Activate() end
+        end
+        
+        if target then
+            local tPart = target.Character[getgenv().EliteConfig.AimPart]
+            local dist = (_LP.Character.HumanoidRootPart.Position - tPart.Position).Magnitude
+            local predictPos = tPart.Position + (tPart.AssemblyLinearVelocity * (dist / getgenv().EliteConfig.BulletSpeed))
+            
+            _CAMERA.CFrame = _CAMERA.CFrame:Lerp(CFrame.new(_CAMERA.CFrame.Position, predictPos + Vector3.new(0, dist/800, 0)), getgenv().EliteConfig.Smoothness)
+            
+            if getgenv().EliteConfig.AutoShoot and shortestMag < 35 then
+                local tool = _LP.Character and _LP.Character:FindFirstChildWhichIsA("Tool")
+                if tool then tool:Activate() end
             end
         end
     end
 end)
 
--- Vehicle Boost
 _RUN.Heartbeat:Connect(function()
     if getgenv().EliteConfig.VehicleBoost then
         local seat = _LP.Character and _LP.Character:FindFirstChild("Humanoid") and _LP.Character.Humanoid.SeatPart
