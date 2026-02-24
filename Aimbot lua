@@ -1,7 +1,8 @@
 --[[ 
-    PROJECT: ELITE HAMBURG (V69 - HEALTH ESP)
-    FEATURES: Added Health ESP (Number), Target Selector (Head/Body)
-    SETTINGS: FOV 250, Smoothness 0.15, Unlocked Conditions
+    PROJECT: ELITE HAMBURG (V71 - PERFECT PREDICTION)
+    FIXED: Improved Bullet Prediction for high accuracy
+    UPDATES: Added Distance ESP, Extreme Smoothness, Fixed Auto Shoot
+    SETTINGS: FOV 250, AimPart Selector, Health + Distance ESP
 --]]
 
 -- // Cleanup //
@@ -18,9 +19,10 @@ getgenv().EliteConfig = {
     AimEnabled = false,
     AutoShoot = false,
     AimPart = "Head",
-    FOV = 250,
-    BulletSpeed = 1100,
-    Smoothness = 0.15,
+    FOV = 220,
+    BulletSpeed = 1000, -- Adjusted for better prediction
+    Smoothness = 0.4,
+    PredictIntensity = 1.05, -- ปรับค่าชดเชยแรงเหวี่ยง
     ESPEnabled = true,
     ArrestAssist = false,
     VehicleBoost = false,
@@ -43,9 +45,9 @@ local WeaponSettings = {
 }
 
 -- // UI Builder //
-local ScreenGui = Instance.new("ScreenGui", game.CoreGui); ScreenGui.Name = "Elite_V69"
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui); ScreenGui.Name = "Elite_V71"
 local MainBtn = Instance.new("TextButton", ScreenGui)
-MainBtn.Size = UDim2.new(0, 60, 0, 60); MainBtn.Position = UDim2.new(0, 20, 0.4, 0); MainBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 15); MainBtn.Text = "ELITE\nV69"; MainBtn.TextColor3 = getgenv().EliteConfig.ThemeColor; MainBtn.Font = Enum.Font.GothamBold; MainBtn.Draggable = true; Instance.new("UICorner", MainBtn).CornerRadius = UDim.new(1, 0)
+MainBtn.Size = UDim2.new(0, 60, 0, 60); MainBtn.Position = UDim2.new(0, 20, 0.4, 0); MainBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 15); MainBtn.Text = "ELITE\nV71"; MainBtn.TextColor3 = getgenv().EliteConfig.ThemeColor; MainBtn.Font = Enum.Font.GothamBold; MainBtn.Draggable = true; Instance.new("UICorner", MainBtn).CornerRadius = UDim.new(1, 0)
 local Stroke = Instance.new("UIStroke", MainBtn); Stroke.Color = getgenv().EliteConfig.ThemeColor; Stroke.Thickness = 2
 
 local Panel = Instance.new("Frame", MainBtn)
@@ -102,16 +104,16 @@ end)
 
 MainBtn.MouseButton1Click:Connect(function() Panel.Visible = not Panel.Visible end)
 
--- // Logic //
+-- // ESP Functions //
 local function GetPlayerColor(p)
     if p.Team then return p.TeamColor.Color end
     return Color3.new(1, 1, 1)
 end
 
 local function GetHealthColor(hp)
-    if hp > 70 then return Color3.new(0, 1, 0) end -- เขียว
-    if hp > 30 then return Color3.new(1, 1, 0) end -- เหลือง
-    return Color3.new(1, 0, 0) -- แดง
+    if hp > 70 then return Color3.new(0, 1, 0) end
+    if hp > 30 then return Color3.new(1, 1, 0) end
+    return Color3.new(1, 0, 0)
 end
 
 local function GetTargetable(p)
@@ -130,6 +132,7 @@ end
 for _, p in pairs(game.Players:GetPlayers()) do if p ~= _LP then CreateESP(p) end end
 game.Players.PlayerAdded:Connect(function(p) if p ~= _LP then CreateESP(p) end end)
 
+-- // Loop //
 _RUN.RenderStepped:Connect(function()
     FOVCircle.Visible = getgenv().EliteConfig.AimEnabled
     FOVCircle.Radius = getgenv().EliteConfig.FOV
@@ -140,14 +143,13 @@ _RUN.RenderStepped:Connect(function()
     for p, assets in pairs(ESP_Objects) do
         local tag = assets.Text
         local hp_tag = assets.Health
-        
         if getgenv().EliteConfig.ESPEnabled and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character.Humanoid.Health > 0 then
             local pos, screen = _CAMERA:WorldToViewportPoint(p.Character.HumanoidRootPart.Position)
             if screen then
+                local dist = math.floor((_LP.Character.HumanoidRootPart.Position - p.Character.HumanoidRootPart.Position).Magnitude)
                 local health = math.floor(p.Character.Humanoid.Health)
-                tag.Position = Vector2.new(pos.X, pos.Y - 40); tag.Text = p.DisplayName; tag.Color = GetPlayerColor(p); tag.Visible = true
-                
-                hp_tag.Position = Vector2.new(pos.X, pos.Y - 25); hp_tag.Text = "[" .. health .. " HP]"; hp_tag.Color = GetHealthColor(health); hp_tag.Visible = true
+                tag.Position = Vector2.new(pos.X, pos.Y - 45); tag.Text = p.DisplayName .. " [" .. dist .. "m]"; tag.Color = GetPlayerColor(p); tag.Visible = true
+                hp_tag.Position = Vector2.new(pos.X, pos.Y - 30); hp_tag.Text = health .. " HP"; hp_tag.Color = GetHealthColor(health); hp_tag.Visible = true
             else tag.Visible = false; hp_tag.Visible = false end
         else tag.Visible = false; hp_tag.Visible = false end
     end
@@ -169,14 +171,25 @@ _RUN.RenderStepped:Connect(function()
         
         if target then
             local tPart = target.Character[getgenv().EliteConfig.AimPart]
-            local dist = (_LP.Character.HumanoidRootPart.Position - tPart.Position).Magnitude
-            local predictPos = tPart.Position + (tPart.AssemblyLinearVelocity * (dist / getgenv().EliteConfig.BulletSpeed))
+            local hrp = target.Character.HumanoidRootPart
+            local myPos = _LP.Character.HumanoidRootPart.Position
+            local targetPos = tPart.Position
+            local dist = (myPos - targetPos).Magnitude
             
+            -- Improved Prediction Algorithm
+            local velocity = hrp.AssemblyLinearVelocity
+            local timeToHit = dist / getgenv().EliteConfig.BulletSpeed
+            local predictPos = targetPos + (velocity * timeToHit * getgenv().EliteConfig.PredictIntensity)
+            
+            -- ปรับการดีดเป้า
             _CAMERA.CFrame = _CAMERA.CFrame:Lerp(CFrame.new(_CAMERA.CFrame.Position, predictPos), getgenv().EliteConfig.Smoothness)
             
-            if getgenv().EliteConfig.AutoShoot and shortestMag < 40 then
+            -- Auto Shoot With Validation
+            if getgenv().EliteConfig.AutoShoot then
                 local tool = _LP.Character and _LP.Character:FindFirstChildWhichIsA("Tool")
-                if tool then tool:Activate() end
+                if tool and tool:IsA("Tool") then
+                    tool:Activate()
+                end
             end
         end
     end
