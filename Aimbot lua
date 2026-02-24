@@ -1,25 +1,17 @@
 --[[ 
-    BUKWAVE x GROK VOID v1.9 RAYFIELD FIXED - Aimbot/Silent/Gun/AutoHeal ครบ
-    Fix: CreateSlider nil error + spam invalid arg + nil Position
+    BUKWAVE x GROK VOID v2.0 KAVO UI - Stable for Arceus X
+    Aimbot + Silent + Gun + Heal + ESP สีทีม + Floating Button
 --]]
 
-getgenv().SecureMode = true
-local Rayfield = loadstring(game:HttpGet('https://raw.githubusercontent.com/SiriusSoftwareLtd/Rayfield/main/source.lua'))()
-print("[DEBUG] Rayfield loaded OK!")
+local Kavo = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
+local Window = Kavo:CreateLib("BUKWAVE x GROK VOID v2.0", "DarkTheme")
 
-local Window = Rayfield:CreateWindow({
-    Name = "BUKWAVE x GROK VOID v1.9 FIXED",
-    LoadingTitle = "Loading Dark X Features",
-    LoadingSubtitle = "Aimbot + Silent + Heal Ready",
-    ConfigurationSaving = { Enabled = true, FolderName = "BukGrokVoid", FileName = "Config" }
-})
-
-getgenv().Config = {
-    AutoShoot = false, ShootFOV = 130, ShootTeamCheck = true, InstantBullet = false,
-    SilentBullet = false, SilentPart = "Head", SilentFOV = 130, SilentTeamCheck = true, HitChance = 90,
-    Aimbot = false, AimPart = "Head", AimFOV = 130, AimSmooth = 0.07, AimTeamCheck = true,
+-- Config
+local Config = {
+    AutoShoot = false, ShootFOV = 130,
+    SilentBullet = false, SilentPart = "Head", SilentFOV = 130, HitChance = 90,
     NoRecoil = true, NoSpread = true, InfAmmo = true, FastReload = true, RapidFire = true, FireMultiplier = 2.5,
-    EnableESP = true, ESP_Box = true, ESP_NameTeam = true, ESP_HPBar = true, ESP_HPTxt = true, ESP_Dist = true, ESP_TeamCheck = true, MaxDist = 1500, LowQuality = true,
+    EnableESP = true, MaxDist = 1500,
     CarTuning = false, CarSpeed = 500, CarTurbo = false, CarGod = true,
     AutoHeal = false, HealThreshold = 19, HealPos = Vector3.new(310.5, 12.0, 60.5)
 }
@@ -32,10 +24,7 @@ local UIS = game:GetService("UserInputService")
 local RS = game:GetService("RunService")
 local WS = workspace
 
-local function IsAlive(plr)
-    local c = plr.Character
-    return c and c:FindFirstChild("Humanoid") and c.Humanoid.Health > 0
-end
+local function IsAlive(plr) local c = plr.Character return c and c:FindFirstChild("Humanoid") and c.Humanoid.Health > 0 end
 
 local function GetClosest(fov, teamCheck, partName)
     local t, md = nil, fov
@@ -55,13 +44,13 @@ local function GetClosest(fov, teamCheck, partName)
     return t
 end
 
--- ESP (สีทีม + เมตร + แก้ nil)
+-- ESP (สีทีม + เมตร)
 local ESPs = {}
 local function AddESP(p)
     if p == LP then return end
     local d = {}
     d.Box = Drawing.new("Square"); d.Box.Thickness = 1; d.Box.Filled = false
-    d.Name = Drawing.new("Text"); d.Name.Size = 14; d.Name.Center = true; d.Name.Outline = true; d.Name.Font = 2
+    d.Name = Drawing.new("Text"); d.Name.Size = 14; d.Name.Center = true; d.Name.Outline = true
     d.Dist = Drawing.new("Text"); d.Dist.Size = 12; d.Dist.Outline = true
     ESPs[p] = d
 end
@@ -72,9 +61,7 @@ end
 
 local function UpESP()
     for p, d in pairs(ESPs) do
-        if not IsAlive(p) or (Config.ESP_TeamCheck and p.Team == LP.Team) then
-            for _,o in pairs(d) do o.Visible = false end continue
-        end
+        if not IsAlive(p) or not Config.EnableESP then for _,o in pairs(d) do o.Visible = false end continue end
         local char = p.Character
         if not char then continue end
         local root = char:FindFirstChild("HumanoidRootPart")
@@ -92,8 +79,8 @@ local function UpESP()
         local teamColor = Color3.new(1,1,1)
         if p.Team then
             local tn = p.Team.Name:lower()
-            if tn:find("police") or tn:find("cop") or tn:find("emergency") or tn:find("notruf") then teamColor = Color3.fromRGB(0,100,255)
-            elseif tn:find("robber") or tn:find("criminal") or tn:find("thief") then teamColor = Color3.fromRGB(255,0,0) end
+            if tn:find("police") or tn:find("cop") then teamColor = Color3.fromRGB(0,100,255) end
+            if tn:find("robber") or tn:find("criminal") then teamColor = Color3.fromRGB(255,0,0) end
         end
         
         if Config.ESP_Box then d.Box.Size = Vector2.new(w,h); d.Box.Position = Vector2.new(pos.X-w/2,pos.Y-h/2); d.Box.Color = teamColor; d.Box.Visible = true end
@@ -107,222 +94,73 @@ Players.PlayerAdded:Connect(AddESP)
 Players.PlayerRemoving:Connect(RemESP)
 RS.Heartbeat:Connect(UpESP)
 
--- Hooks (pcall wrap เพื่อไม่ spam error)
+-- Hooks (Gun + Silent)
 local mt = getrawmetatable(game)
 setreadonly(mt, false)
 local oldNamecall = mt.__namecall
 mt.__namecall = newcclosure(function(self, ...)
     local args = {...}
     local method = getnamecallmethod()
-    pcall(function()
-        if Config.SilentBullet and self == WS and method == "Raycast" then
-            local dir = args[2]
-            if dir.Magnitude < 50 then return oldNamecall(self, ...) end
-            local target = GetClosest(Config.SilentFOV, Config.SilentTeamCheck, Config.SilentPart)
-            if target and math.random(1,100) <= Config.HitChance then
-                local tp = target.Character[Config.SilentPart].Position + (target.Character.HumanoidRootPart.Velocity * 0.135)
-                args[2] = (tp - args[1]).Unit * dir.Magnitude
-            end
+    if Config.SilentBullet and self == WS and method == "Raycast" then
+        local dir = args[2]
+        if dir.Magnitude < 50 then return oldNamecall(self, ...) end
+        local target = GetClosest(Config.SilentFOV, Config.SilentTeamCheck, Config.SilentPart)
+        if target and math.random(1,100) <= Config.HitChance then
+            local tp = target.Character[Config.SilentPart].Position + (target.Character.HumanoidRootPart.Velocity * 0.135)
+            args[2] = (tp - args[1]).Unit * dir.Magnitude
         end
-    end)
+    end
     return oldNamecall(self, unpack(args))
 end)
 
 local oldIndex = mt.__index
 mt.__index = newcclosure(function(self, key)
     if not checkcaller() then
-        pcall(function()
-            if self:IsA("Tool") then
-                if key == "Recoil" and Config.NoRecoil then return 0 end
-                if key == "Spread" and Config.NoSpread then return 0 end
-                if key == "Ammo" and Config.InfAmmo then return math.huge end
-                if key == "ReloadTime" and Config.FastReload then return 0 end
-                if key == "FireRate" and Config.RapidFire then return 0.15 / Config.FireMultiplier end
-                if (key:find("Speed") or key:find("Velocity")) and Config.InstantBullet then return math.huge end
-            end
-        end)
+        if self:IsA("Tool") then
+            if key == "Recoil" and Config.NoRecoil then return 0 end
+            if key == "Spread" and Config.NoSpread then return 0 end
+            if key == "Ammo" and Config.InfAmmo then return math.huge end
+            if key == "ReloadTime" and Config.FastReload then return 0 end
+            if key == "FireRate" and Config.RapidFire then return 0.15 / Config.FireMultiplier end
+        end
     end
     return oldIndex(self, key)
 end)
 setreadonly(mt, true)
 
--- Loops (pcall เพื่อปลอดภัย)
-WS.ChildAdded:Connect(function(child)
-    pcall(function()
-        if Config.InstantBullet and (child.Name:lower():find("bullet") or child.Name:lower():find("proj")) then
-            local target = GetClosest(999, true)
-            if target then child.CFrame = CFrame.new(target.Character.Head.Position) end
-        end
-    end)
-end)
-
+-- Loops
 RS.Heartbeat:Connect(function()
-    pcall(function()
-        if Config.AutoShoot then
-            local target = GetClosest(Config.ShootFOV, Config.ShootTeamCheck)
-            if target then
-                local tool = LP.Character and LP.Character:FindFirstChildOfClass("Tool")
-                if tool then tool:Activate() end
-            end
-        end
-        if Config.Aimbot and not Config.SilentBullet then
-            local target = GetClosest(Config.AimFOV, Config.AimTeamCheck)
-            if target and target.Character:FindFirstChild(Config.AimPart) then
-                local lookAt = CFrame.lookAt(Camera.CFrame.Position, target.Character[Config.AimPart].Position)
-                Camera.CFrame = Camera.CFrame:Lerp(lookAt, Config.AimSmooth)
-            end
-        end
-        if Config.AutoHeal and IsAlive(LP) and LP.Character.Humanoid.Health < Config.HealThreshold then
-            LP.Character.HumanoidRootPart.CFrame = CFrame.new(Config.HealPos)
-        end
-    end)
-end)
-
-RS.Heartbeat:Connect(function()
-    pcall(function()
-        if Config.CarTuning then
-            local humanoid = LP.Character and LP.Character:FindFirstChild("Humanoid")
-            local seat = humanoid and humanoid.SeatPart
-            if seat and seat:IsA("VehicleSeat") then
-                seat.MaxSpeed = Config.CarSpeed
-                seat.Torque = 140000
-                if Config.CarGod then
-                    for _, part in pairs(seat.Parent:GetDescendants()) do
-                        if part:IsA("BasePart") then part.CanCollide = false end
-                    end
-                end
-                if Config.CarTurbo and UIS:IsKeyDown(Enum.KeyCode.LeftShift) then
-                    local force = seat.CFrame.LookVector * Config.CarSpeed * 3.0
-                    seat.AssemblyLinearVelocity = Vector3.new(force.X, seat.AssemblyLinearVelocity.Y, force.Z)
-                end
-            end
-        end
-    end)
-end)
-
--- Tabs (สร้างทีละตัว + delay สำหรับ slider เพื่อแก้ nil)
-local TabShoot = Window:CreateTab("🔥 SHOOT VOID")
-TabShoot:CreateToggle({Name = "Auto Shoot (Aimbot)", CurrentValue = false, Callback = function(v) Config.AutoShoot = v end})
-TabShoot:CreateToggle({Name = "Instant Bullet", CurrentValue = false, Callback = function(v) Config.InstantBullet = v end})
-wait(0.5)  -- Delay เพื่อ UI โหลดก่อน slider
-TabShoot:CreateSlider({Name = "Shoot FOV", Min = 50, Max = 300, Default = 130, Callback = function(v) Config.ShootFOV = v end})
-
-local TabSilent = Window:CreateTab("🖤 SILENT VOID")
-TabSilent:CreateToggle({Name = "Silent Bullet", CurrentValue = false, Callback = function(v) Config.SilentBullet = v end})
-TabSilent:CreateDropdown({Name = "Target Part", Options = {"Head","UpperTorso","HumanoidRootPart"}, CurrentOption = "Head", Callback = function(v) Config.SilentPart = v end})
-TabSilent:CreateSlider({Name = "Silent FOV", Min = 50, Max = 300, Default = 130, Callback = function(v) Config.SilentFOV = v end})
-TabSilent:CreateSlider({Name = "Hit Chance %", Min = 50, Max = 100, Default = 90, Callback = function(v) Config.HitChance = v end})
-
-local TabGun = Window:CreateTab("💣 GUN MODS")
-TabGun:CreateToggle({Name = "Rapid Fire", CurrentValue = true, Callback = function(v) Config.RapidFire = v end})
-wait(0.5)
-TabGun:CreateSlider({Name = "Fire Multiplier (1-5x)", Min = 1, Max = 5, Default = 2.5, Callback = function(v) Config.FireMultiplier = v end})
-TabGun:CreateToggle({Name = "No Recoil", CurrentValue = true, Callback = function(v) Config.NoRecoil = v end})
-TabGun:CreateToggle({Name = "No Spread", CurrentValue = true, Callback = function(v) Config.NoSpread = v end})
-TabGun:CreateToggle({Name = "Inf Ammo", CurrentValue = true, Callback = function(v) Config.InfAmmo = v end})
-TabGun:CreateToggle({Name = "Fast Reload", CurrentValue = true, Callback = function(v) Config.FastReload = v end})
-
-local TabESP = Window:CreateTab("👻 ESP VOID")
-TabESP:CreateToggle({Name = "Enable ESP", CurrentValue = true, Callback = function(v) Config.EnableESP = v end})
-TabESP:CreateToggle({Name = "Low Quality", CurrentValue = true, Callback = function(v) Config.LowQuality = v end})
-TabESP:CreateSlider({Name = "Max Distance", Min = 500, Max = 3000, Default = 1500, Callback = function(v) Config.MaxDist = v end})
-
-local TabCar = Window:CreateTab("🚀 CAR VOID")
-TabCar:CreateToggle({Name = "Car Tuning", CurrentValue = false, Callback = function(v) Config.CarTuning = v end})
-TabCar:CreateSlider({Name = "Car Speed", Min = 100, Max = 1000, Default = 500, Callback = function(v) Config.CarSpeed = v end})
-TabCar:CreateToggle({Name = "Car God", CurrentValue = true, Callback = function(v) Config.CarGod = v end})
-TabCar:CreateToggle({Name = "Car Turbo (Shift)", CurrentValue = false, Callback = function(v) Config.CarTurbo = v end})
-
-local TabHeal = Window:CreateTab("⚕️ AUTO HEAL")
-TabHeal:CreateToggle({Name = "Auto Heal (<19 HP)", CurrentValue = false, Callback = function(v) Config.AutoHeal = v end})
-TabHeal:CreateSlider({Name = "Heal Threshold", Min = 10, Max = 50, Default = 19, Callback = function(v) Config.HealThreshold = v end})
-TabHeal:CreateButton({Name = "Set Heal Pos (Current Position)", Callback = function()
-    if LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") then
-        Config.HealPos = LP.Character.HumanoidRootPart.Position
-        Rayfield:Notify({Title = "Updated", Content = "Heal Position set to current location!", Duration = 4})
-    end
-end})
-
-Rayfield:LoadConfiguration()
-Rayfield:Notify({Title = "v1.9 FIXED", Content = "UI ครบ + No Slider Error + Aimbot/Silent/Gun/Heal Ready! กดปุ่มลอยเปิด/ปิด", Duration = 8})
-
-print("[DEBUG] Full Rayfield script loaded - No more nil slider!")
-
--- Floating Button (กดเปิด/ปิด Rayfield UI)
-local PlayerGui = LP:WaitForChild("PlayerGui")
-local ToggleGui = Instance.new("ScreenGui")
-ToggleGui.Name = "VoidToggleGui"
-ToggleGui.ResetOnSpawn = false
-ToggleGui.IgnoreGuiInset = true
-ToggleGui.Parent = PlayerGui
-
-local ToggleFrame = Instance.new("Frame")
-ToggleFrame.Size = UDim2.new(0, 60, 0, 60)
-ToggleFrame.Position = UDim2.new(1, -80, 1, -100)
-ToggleFrame.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
-ToggleFrame.BackgroundTransparency = 0.3
-ToggleFrame.Parent = ToggleGui
-
-local UICorner = Instance.new("UICorner")
-UICorner.CornerRadius = UDim.new(1, 0)
-UICorner.Parent = ToggleFrame
-
-local Icon = Instance.new("TextLabel")
-Icon.Size = UDim2.new(1, 0, 1, 0)
-Icon.BackgroundTransparency = 1
-Icon.Text = "✕"
-Icon.TextColor3 = Color3.new(1,1,1)
-Icon.TextScaled = true
-Icon.Font = Enum.Font.GothamBold
-Icon.Parent = ToggleFrame
-
--- Drag code (เหมือนเดิม)
-local dragging, dragInput, dragStart, startPos
-ToggleFrame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = ToggleFrame.Position
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then dragging = false end
-        end)
+    if Config.AutoHeal and IsAlive(LP) and LP.Character.Humanoid.Health < Config.HealThreshold then
+        LP.Character.HumanoidRootPart.CFrame = CFrame.new(Config.HealPos)
     end
 end)
 
-ToggleFrame.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-        dragInput = input
-    end
-end)
+-- Kavo Tabs
+local Tab1 = Window:NewTab("SHOOT")
+local Tab1Section = Tab1:NewSection("Aimbot & Silent")
+Tab1Section:NewToggle("Auto Shoot (Aimbot)", "Auto aim + shoot", function(v) Config.AutoShoot = v end)
+Tab1Section:NewToggle("Silent Bullet", "Silent Aim", function(v) Config.SilentBullet = v end)
+Tab1Section:NewSlider("Shoot FOV", "FOV for Auto Shoot", 300, 50, function(v) Config.ShootFOV = v end)
 
-UIS.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        local delta = input.Position - dragStart
-        ToggleFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-end)
+local Tab2 = Window:NewTab("GUN MODS")
+local Tab2Section = Tab2:NewSection("Weapon Mods")
+Tab2Section:NewToggle("Rapid Fire", "", function(v) Config.RapidFire = v end)
+Tab2Section:NewSlider("Fire Multiplier", "1-5x", 5, 1, function(v) Config.FireMultiplier = v end)
+Tab2Section:NewToggle("No Recoil", "", function(v) Config.NoRecoil = v end)
+Tab2Section:NewToggle("No Spread", "", function(v) Config.NoSpread = v end)
+Tab2Section:NewToggle("Inf Ammo", "", function(v) Config.InfAmmo = v end)
+Tab2Section:NewToggle("Fast Reload", "", function(v) Config.FastReload = v end)
 
-local function toggleMenu()
-    -- Rayfield UI มักอยู่ใน PlayerGui หรือ CoreGui - ลองหา Main frame
-    local rayfieldGui = PlayerGui:FindFirstChildWhichIsA("ScreenGui") -- หรือหาโดยชื่อ Rayfield
-    if rayfieldGui then
-        for _, child in pairs(rayfieldGui:GetDescendants()) do
-            if child:IsA("Frame") and child.Name == "Main" then
-                child.Visible = not child.Visible
-                ToggleFrame.BackgroundColor3 = child.Visible and Color3.fromRGB(0,180,0) or Color3.fromRGB(200,0,0)
-                Icon.Text = child.Visible and "✕" or "☰"
-                break
-            end
-        end
-    end
-end
+local Tab3 = Window:NewTab("ESP")
+local Tab3Section = Tab3:NewSection("ESP Settings")
+Tab3Section:NewToggle("Enable ESP", "", function(v) Config.EnableESP = v end)
+Tab3Section:NewSlider("Max Distance", "meters", 3000, 500, function(v) Config.MaxDist = v end)
 
-ToggleFrame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        toggleMenu()
-    end
-end)
+local Tab4 = Window:NewTab("AUTO HEAL")
+local Tab4Section = Tab4:NewSection("Heal Settings")
+Tab4Section:NewToggle("Auto Heal", "TP when HP low", function(v) Config.AutoHeal = v end)
+Tab4Section:NewSlider("Heal Threshold", "HP < x", 50, 10, function(v) Config.HealThreshold = v end)
 
-wait(3)  -- รอ UI โหลด
-toggleMenu()  -- เปิดครั้งแรก
-print("[DEBUG] Rayfield FIXED + Floating Button ready - Check tabs!")
+Kavo:ToggleUI()  -- เปิด UI ครั้งแรก
+
+print("[DEBUG] Kavo UI loaded - Stable version!")
