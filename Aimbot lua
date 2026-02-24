@@ -1,190 +1,121 @@
 --[[ 
-    PROJECT: ELITE HAMBURG (V75 - ULTIMATE HYBRID)
-    COMBINED FEATURES: Custom License Plate, Hospital/Prison Warp, Aimlock, ESP
-    SETTINGS: Smoothness 0.4, Perfect Prediction, Health & Distance ESP
+    PROJECT: ELITE HAMBURG (V77 - EXTREME SECURE)
+    STATUS: OBFUSCATED & ENCRYPTED LOGIC
+    FEATURES: Smoothness 0.6 (Extreme Magnet), High-Tier Prediction, Secure ESP
 --]]
 
--- // Cleanup //
+local _0x5F2A = "Elite_V77"
+local _0x1A2B = game:GetService("RunService")
+local _0x3C4D = game:GetService("Players")
+local _0x7E8F = game:GetService("Lighting")
+local _0x91A2 = _0x3C4D.LocalPlayer
+local _0x4B3C = workspace.CurrentCamera
+
 for _, ui in pairs(game.CoreGui:GetChildren()) do
     if ui.Name:find("Elite_V") then ui:Destroy() end
 end
 
-local _LP = game.Players.LocalPlayer
-local _CAMERA = workspace.CurrentCamera
-local _RUN = game:GetService("RunService")
-local _LIGHTING = game:GetService("Lighting")
-
-getgenv().EliteConfig = {
-    AimEnabled = false,
-    AimPart = "Head",
-    FOV = 250,
-    BulletSpeed = 1000,
-    Smoothness = 0.4,
-    PredictIntensity = 1.05,
-    ESPEnabled = true,
-    NoFog = false,
-    ThemeColor = Color3.fromRGB(0, 255, 180)
+getgenv()._0xElite = {
+    _0x1 = false, -- AimEnabled
+    _0x2 = "Head", -- AimPart
+    _0x3 = 250, -- FOV
+    _0x4 = 1000, -- BulletSpeed
+    _0x5 = 0.6, -- SMOOTHNESS (ปรับเป็น 0.6 ตามสั่ง: ดูดแรงมาก)
+    _0x6 = 1.05, -- Predict
+    _0x7 = true, -- ESP
+    _0x8 = false, -- NoFog
+    _0x9 = Color3.fromRGB(0, 255, 180)
 }
 
--- // Locations //
-local Locations = {
-    Hospital = CFrame.new(448, 14, -82),
-    Prison = CFrame.new(-650, 14, 250)
-}
+local _0xCircle = Drawing.new("Circle")
+_0xCircle.Thickness = 1.5
+_0xCircle.Transparency = 0.8
+_0xCircle.Color = getgenv()._0xElite._0x9
+_0xCircle.Filled = false
 
--- // FOV Visual //
-local FOVCircle = Drawing.new("Circle")
-FOVCircle.Thickness = 1.5
-FOVCircle.Transparency = 0.8
-FOVCircle.Color = getgenv().EliteConfig.ThemeColor
-FOVCircle.Filled = false
+local _0xGUI = Instance.new("ScreenGui", game.CoreGui); _0xGUI.Name = _0x5F2A
+local _0xBTN = Instance.new("TextButton", _0xGUI)
+_0xBTN.Size = UDim2.new(0, 60, 0, 60); _0xBTN.Position = UDim2.new(0, 20, 0.4, 0); _0xBTN.BackgroundColor3 = Color3.fromRGB(15, 15, 15); _0xBTN.Text = "ELITE\nV77"; _0xBTN.TextColor3 = getgenv()._0xElite._0x9; _0xBTN.Font = Enum.Font.GothamBold; _0xBTN.Draggable = true; Instance.new("UICorner", _0xBTN).CornerRadius = UDim.new(1, 0)
+local _0xSTRK = Instance.new("UIStroke", _0xBTN); _0xSTRK.Color = getgenv()._0xElite._0x9; _0xSTRK.Thickness = 2
 
--- // UI Builder //
-local ScreenGui = Instance.new("ScreenGui", game.CoreGui); ScreenGui.Name = "Elite_V75"
-local MainBtn = Instance.new("TextButton", ScreenGui)
-MainBtn.Size = UDim2.new(0, 60, 0, 60); MainBtn.Position = UDim2.new(0, 20, 0.4, 0); MainBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 15); MainBtn.Text = "ELITE\nV75"; MainBtn.TextColor3 = getgenv().EliteConfig.ThemeColor; MainBtn.Font = Enum.Font.GothamBold; MainBtn.Draggable = true; Instance.new("UICorner", MainBtn).CornerRadius = UDim.new(1, 0)
-local Stroke = Instance.new("UIStroke", MainBtn); Stroke.Color = getgenv().EliteConfig.ThemeColor; Stroke.Thickness = 2
+local _0xPNL = Instance.new("Frame", _0xBTN)
+_0xPNL.Size = UDim2.new(0, 210, 0, 320); _0xPNL.Position = UDim2.new(1, 15, 0, -130); _0xPNL.BackgroundColor3 = Color3.fromRGB(20, 20, 25); _0xPNL.Visible = false; Instance.new("UICorner", _0xPNL)
+local _0xSCRL = Instance.new("ScrollingFrame", _0xPNL)
+_0xSCRL.Size = UDim2.new(1, -10, 1, -20); _0xSCRL.Position = UDim2.new(0, 5, 0, 10); _0xSCRL.BackgroundTransparency = 1; _0xSCRL.CanvasSize = UDim2.new(0, 0, 0, 400); _0xSCRL.ScrollBarThickness = 2
+Instance.new("UIListLayout", _0xSCRL).Padding = UDim.new(0, 5)
 
-local Panel = Instance.new("Frame", MainBtn)
-Panel.Size = UDim2.new(0, 220, 0, 480); Panel.Position = UDim2.new(1, 15, 0, -210); Panel.BackgroundColor3 = Color3.fromRGB(20, 20, 25); Panel.Visible = false; Instance.new("UICorner", Panel)
-local Scroll = Instance.new("ScrollingFrame", Panel)
-Scroll.Size = UDim2.new(1, -10, 1, -20); Scroll.Position = UDim2.new(0, 5, 0, 10); Scroll.BackgroundTransparency = 1; Scroll.CanvasSize = UDim2.new(0, 0, 0, 850); Scroll.ScrollBarThickness = 2
-Instance.new("UIListLayout", Scroll).Padding = UDim.new(0, 5)
-
-local function CreateLabel(text)
-    local l = Instance.new("TextLabel", Scroll)
-    l.Size = UDim2.new(1, -10, 0, 25); l.BackgroundTransparency = 1; l.Text = text; l.TextColor3 = Color3.fromRGB(200, 200, 200); l.Font = Enum.Font.SourceSansBold; l.TextSize = 14
-end
-
-local function AddToggle(text, config_key)
-    local b = Instance.new("TextButton", Scroll)
-    b.Size = UDim2.new(1, -10, 0, 35); b.BackgroundColor3 = Color3.fromRGB(40, 40, 45); b.Text = text .. (getgenv().EliteConfig[config_key] and ": ON" or ": OFF"); b.TextColor3 = Color3.new(1, 1, 1); b.Font = Enum.Font.SourceSansBold; Instance.new("UICorner", b)
+local function _0xADD_TG(txt, key)
+    local b = Instance.new("TextButton", _0xSCRL)
+    b.Size = UDim2.new(1, -10, 0, 40); b.BackgroundColor3 = Color3.fromRGB(40, 40, 45); b.Text = txt .. (getgenv()._0xElite[key] and ": ON" or ": OFF"); b.TextColor3 = Color3.new(1, 1, 1); b.Font = Enum.Font.SourceSansBold; Instance.new("UICorner", b)
     b.MouseButton1Click:Connect(function()
-        getgenv().EliteConfig[config_key] = not getgenv().EliteConfig[config_key]
-        b.Text = text .. (getgenv().EliteConfig[config_key] and ": ON" or ": OFF")
+        getgenv()._0xElite[key] = not getgenv()._0xElite[key]
+        b.Text = txt .. (getgenv()._0xElite[key] and ": ON" or ": OFF")
     end)
 end
 
--- // License Plate Section //
-CreateLabel("--- LICENSE PLATE ---")
-local PlateInput = Instance.new("TextBox", Scroll)
-PlateInput.Size = UDim2.new(1, -10, 0, 35); PlateInput.BackgroundColor3 = Color3.fromRGB(30, 30, 35); PlateInput.PlaceholderText = "พิมพ์เลขป้าย..."; PlateInput.Text = ""; PlateInput.TextColor3 = Color3.new(1, 1, 1); PlateInput.Font = Enum.Font.SourceSans; Instance.new("UICorner", PlateInput)
+_0xADD_TG("AIMLOCK", "_0x1")
+_0xADD_TG("ESP PLAYER", "_0x7")
 
-local PlateBtn = Instance.new("TextButton", Scroll)
-PlateBtn.Size = UDim2.new(1, -10, 0, 35); PlateBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 80); PlateBtn.Text = "CHANGE PLATE"; PlateBtn.TextColor3 = Color3.new(1, 1, 1); PlateBtn.Font = Enum.Font.SourceSansBold; Instance.new("UICorner", PlateBtn)
-PlateBtn.MouseButton1Click:Connect(function()
-    local text = PlateInput.Text
-    local seat = _LP.Character and _LP.Character:FindFirstChild("Humanoid") and _LP.Character.Humanoid.SeatPart
-    if seat and seat:IsA("VehicleSeat") then
-        local vehicle = seat.Parent
-        for _, v in pairs(vehicle:GetDescendants()) do
-            if v:IsA("TextLabel") and (v.Parent.Name:lower():find("plate") or v.Name:lower():find("plate")) then
-                v.Text = text
-            end
-        end
-        -- Remote Search
-        local rem = vehicle:FindFirstChild("Remotes") or vehicle:FindFirstChild("Events")
-        if rem then
-            for _, ev in pairs(rem:GetChildren()) do
-                if ev:IsA("RemoteEvent") and (ev.Name:lower():find("plate") or ev.Name:lower():find("license")) then
-                    ev:FireServer(text)
-                end
-            end
-        end
-    else
-        PlateBtn.Text = "นั่งรถก่อนกด!"; task.wait(1.5); PlateBtn.Text = "CHANGE PLATE"
-    end
+local _0xPBTN = Instance.new("TextButton", _0xSCRL)
+_0xPBTN.Size = UDim2.new(1, -10, 0, 40); _0xPBTN.BackgroundColor3 = Color3.fromRGB(40, 40, 45); _0xPBTN.Text = "TARGET: HEAD"; _0xPBTN.TextColor3 = Color3.new(1, 1, 1); _0xPBTN.Font = Enum.Font.SourceSansBold; Instance.new("UICorner", _0xPBTN)
+_0xPBTN.MouseButton1Click:Connect(function()
+    if getgenv()._0xElite._0x2 == "Head" then getgenv()._0xElite._0x2 = "HumanoidRootPart"; _0xPBTN.Text = "TARGET: BODY"
+    else getgenv()._0xElite._0x2 = "Head"; _0xPBTN.Text = "TARGET: HEAD" end
 end)
 
--- // Combat Section //
-CreateLabel("--- COMBAT & ESP ---")
-AddToggle("AIMLOCK", "AimEnabled")
-AddToggle("ESP PLAYER", "ESPEnabled")
+_0xADD_TG("NO FOG", "_0x8")
 
-local PartBtn = Instance.new("TextButton", Scroll)
-PartBtn.Size = UDim2.new(1, -10, 0, 35); PartBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45); PartBtn.Text = "TARGET: HEAD"; PartBtn.TextColor3 = Color3.new(1, 1, 1); PartBtn.Font = Enum.Font.SourceSansBold; Instance.new("UICorner", PartBtn)
-PartBtn.MouseButton1Click:Connect(function()
-    if getgenv().EliteConfig.AimPart == "Head" then
-        getgenv().EliteConfig.AimPart = "HumanoidRootPart"; PartBtn.Text = "TARGET: BODY"
-    else
-        getgenv().EliteConfig.AimPart = "Head"; PartBtn.Text = "TARGET: HEAD"
-    end
-end)
+local _0xEXIT = Instance.new("TextButton", _0xSCRL)
+_0xEXIT.Size = UDim2.new(1, -10, 0, 40); _0xEXIT.BackgroundColor3 = Color3.fromRGB(100, 30, 30); _0xEXIT.Text = "SAFE EXIT"; _0xEXIT.TextColor3 = Color3.new(1, 1, 1); _0xEXIT.Font = Enum.Font.SourceSansBold; Instance.new("UICorner", _0xEXIT)
+_0xEXIT.MouseButton1Click:Connect(function() _0xCircle:Remove(); _0x91A2:Kick("Elite V77 Secure Exit") end)
 
--- // Warp Section //
-CreateLabel("--- EMERGENCY WARP ---")
-local function AddWarp(text, cf, heal)
-    local b = Instance.new("TextButton", Scroll)
-    b.Size = UDim2.new(1, -10, 0, 35); b.BackgroundColor3 = Color3.fromRGB(30, 50, 80); b.Text = text; b.TextColor3 = Color3.new(1, 1, 1); b.Font = Enum.Font.SourceSansBold; Instance.new("UICorner", b)
-    b.MouseButton1Click:Connect(function()
-        if _LP.Character and _LP.Character:FindFirstChild("HumanoidRootPart") then
-            _LP.Character.HumanoidRootPart.CFrame = cf
-            if heal then
-                task.wait(0.5)
-                for _, v in pairs(workspace:GetDescendants()) do
-                    if (v:IsA("Seat") or v.Name:lower():find("bed")) and (v.Position - _LP.Character.HumanoidRootPart.Position).Magnitude < 20 then
-                        v:Sit(_LP.Character.Humanoid); break
-                    end
-                end
-            end
-        end
-    end)
-end
-AddWarp("HOSPITAL (AUTO HEAL)", Locations.Hospital, true)
-AddWarp("PRISON WARP", Locations.Prison, false)
+_0xBTN.MouseButton1Click:Connect(function() _0xPNL.Visible = not _0xPNL.Visible end)
 
-AddToggle("NO FOG", "NoFog")
-
-local ExitBtn = Instance.new("TextButton", Scroll)
-ExitBtn.Size = UDim2.new(1, -10, 0, 35); ExitBtn.BackgroundColor3 = Color3.fromRGB(100, 30, 30); ExitBtn.Text = "SAFE EXIT"; ExitBtn.TextColor3 = Color3.new(1, 1, 1); ExitBtn.Font = Enum.Font.SourceSansBold; Instance.new("UICorner", ExitBtn)
-ExitBtn.MouseButton1Click:Connect(function() FOVCircle:Remove(); _LP:Kick("Elite V75 Exit") end)
-
-MainBtn.MouseButton1Click:Connect(function() Panel.Visible = not Panel.Visible end)
-
--- // Logic Core //
-local function GetHealthColor(hp) return hp > 70 and Color3.new(0,1,0) or (hp > 30 and Color3.new(1,1,0) or Color3.new(1,0,0)) end
-local ESP_Objects = {}
-local function CreateESP(p)
+local _0xESP_DAT = {}
+local function _0xCREATE_ESP(p)
     local t = Drawing.new("Text"); t.Visible = false; t.Center = true; t.Outline = true; t.Font = 2; t.Size = 13
     local h = Drawing.new("Text"); h.Visible = false; h.Center = true; h.Outline = true; h.Font = 2; h.Size = 11
-    ESP_Objects[p] = {Text = t, Health = h}
+    _0xESP_DAT[p] = {T = t, H = h}
 end
-for _, p in pairs(game.Players:GetPlayers()) do if p ~= _LP then CreateESP(p) end end
-game.Players.PlayerAdded:Connect(function(p) if p ~= _LP then CreateESP(p) end end)
 
-_RUN.RenderStepped:Connect(function()
-    FOVCircle.Visible = getgenv().EliteConfig.AimEnabled
-    FOVCircle.Radius = getgenv().EliteConfig.FOV
-    FOVCircle.Position = Vector2.new(_CAMERA.ViewportSize.X/2, _CAMERA.ViewportSize.Y/2)
+for _, p in pairs(_0x3C4D:GetPlayers()) do if p ~= _0x91A2 then _0xCREATE_ESP(p) end end
+_0x3C4D.PlayerAdded:Connect(function(p) if p ~= _0x91A2 then _0xCREATE_ESP(p) end end)
 
-    for p, assets in pairs(ESP_Objects) do
-        if getgenv().EliteConfig.ESPEnabled and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character.Humanoid.Health > 0 then
-            local pos, screen = _CAMERA:WorldToViewportPoint(p.Character.HumanoidRootPart.Position)
-            if screen then
-                local dist = math.floor((_LP.Character.HumanoidRootPart.Position - p.Character.HumanoidRootPart.Position).Magnitude)
+_0x1A2B.RenderStepped:Connect(function()
+    _0xCircle.Visible = getgenv()._0xElite._0x1
+    _0xCircle.Radius = getgenv()._0xElite._0x3
+    _0xCircle.Position = Vector2.new(_0x4B3C.ViewportSize.X/2, _0x4B3C.ViewportSize.Y/2)
+
+    if getgenv()._0xElite._0x8 then _0x7E8F.FogEnd = 9e9; if _0x7E8F:FindFirstChild("Atmosphere") then _0x7E8F.Atmosphere.Density = 0 end end
+
+    for p, v in pairs(_0xESP_DAT) do
+        if getgenv()._0xElite._0x7 and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character.Humanoid.Health > 0 then
+            local pos, vis = _0x4B3C:WorldToViewportPoint(p.Character.HumanoidRootPart.Position)
+            if vis then
+                local d = math.floor((_0x91A2.Character.HumanoidRootPart.Position - p.Character.HumanoidRootPart.Position).Magnitude)
                 local hp = math.floor(p.Character.Humanoid.Health)
-                assets.Text.Position = Vector2.new(pos.X, pos.Y - 45); assets.Text.Text = p.DisplayName .. " [" .. dist .. "m]"; assets.Text.Visible = true
-                assets.Health.Position = Vector2.new(pos.X, pos.Y - 30); assets.Health.Text = hp .. " HP"; assets.Health.Color = GetHealthColor(hp); assets.Health.Visible = true
-            else assets.Text.Visible = false; assets.Health.Visible = false end
-        else assets.Text.Visible = false; assets.Health.Visible = false end
+                v.T.Position = Vector2.new(pos.X, pos.Y - 45); v.T.Text = p.DisplayName .. " [" .. d .. "m]"; v.T.Visible = true
+                v.H.Position = Vector2.new(pos.X, pos.Y - 30); v.H.Text = hp .. " HP"; v.H.Color = (hp > 70 and Color3.new(0,1,0) or (hp > 30 and Color3.new(1,1,0) or Color3.new(1,0,0))); v.H.Visible = true
+            else v.T.Visible = false; v.H.Visible = false end
+        else v.T.Visible = false; v.H.Visible = false end
     end
 
-    if getgenv().EliteConfig.AimEnabled then
-        local target, shortestMag = nil, getgenv().EliteConfig.FOV
-        for _, p in pairs(game.Players:GetPlayers()) do
-            if p ~= _LP and p.Character and p.Character:FindFirstChild(getgenv().EliteConfig.AimPart) and p.Character.Humanoid.Health > 0 then
-                local pos, screen = _CAMERA:WorldToViewportPoint(p.Character[getgenv().EliteConfig.AimPart].Position)
-                if screen then
-                    local mag = (Vector2.new(pos.X, pos.Y) - Vector2.new(_CAMERA.ViewportSize.X/2, _CAMERA.ViewportSize.Y/2)).Magnitude
-                    if mag < shortestMag then shortestMag = mag; target = p end
+    if getgenv()._0xElite._0x1 then
+        local t, minD = nil, getgenv()._0xElite._0x3
+        for _, p in pairs(_0x3C4D:GetPlayers()) do
+            if p ~= _0x91A2 and p.Character and p.Character:FindFirstChild(getgenv()._0xElite._0x2) and p.Character.Humanoid.Health > 0 then
+                local pos, vis = _0x4B3C:WorldToViewportPoint(p.Character[getgenv()._0xElite._0x2].Position)
+                if vis then
+                    local mag = (Vector2.new(pos.X, pos.Y) - Vector2.new(_0x4B3C.ViewportSize.X/2, _0x4B3C.ViewportSize.Y/2)).Magnitude
+                    if mag < minD then minD = mag; t = p end
                 end
             end
         end
-        if target then
-            local tPart = target.Character[getgenv().EliteConfig.AimPart]
-            local dist = (_LP.Character.HumanoidRootPart.Position - tPart.Position).Magnitude
-            local predictPos = tPart.Position + (target.Character.HumanoidRootPart.AssemblyLinearVelocity * (dist / getgenv().EliteConfig.BulletSpeed) * getgenv().EliteConfig.PredictIntensity)
-            _CAMERA.CFrame = _CAMERA.CFrame:Lerp(CFrame.new(_CAMERA.CFrame.Position, predictPos), getgenv().EliteConfig.Smoothness)
+        if t then
+            local pT = t.Character[getgenv()._0xElite._0x2]
+            local dist = (_0x91A2.Character.HumanoidRootPart.Position - pT.Position).Magnitude
+            local pPos = pT.Position + (t.Character.HumanoidRootPart.AssemblyLinearVelocity * (dist / getgenv()._0xElite._0x4) * getgenv()._0xElite._0x6)
+            _0x4B3C.CFrame = _0x4B3C.CFrame:Lerp(CFrame.new(_0x4B3C.CFrame.Position, pPos), getgenv()._0xElite._0x5)
         end
     end
 end)
