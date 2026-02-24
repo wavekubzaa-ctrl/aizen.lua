@@ -1,21 +1,21 @@
 --[[ 
-    PROJECT: ELITE HAMBURG (V88 - ภาษาไทยฉบับสมบูรณ์)
-    FEATURES: ม็อดปืนจัดเต็ม, อิมบอทสมูท, กระสุนเงียบ, ระบบฮีล
-    UI: Rayfield Library (Thai Language)
+    PROJECT: ELITE HAMBURG (V88 - ULTIMATE THAI EDITION)
+    UI: Rayfield Library
+    FEATURES: Aimbot, Silent, ESP (Team Check), Gun Mod, Car Tuner
 --]]
 
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "Elite Hamburg V88 - เมนูไทย",
+   Name = "Elite Hamburg V88 - เมนูไทยฉบับสมบูรณ์",
    LoadingTitle = "Dark Elite v88",
-   LoadingSubtitle = "ระบบม็อดปืนและช่วยเล่น",
+   LoadingSubtitle = "ระบบภาษาไทยเพื่อความลื่นไหล",
    ConfigurationSaving = { Enabled = false }
 })
 
--- // การตั้งค่าหลัก //
+-- // การตั้งค่าเริ่มต้น //
 getgenv().Config = {
-    -- การต่อสู้ (Combat)
+    -- ระบบต่อสู้
     Aimbot = false,
     AimPart = "Head",
     AimFOV = 150,
@@ -26,18 +26,24 @@ getgenv().Config = {
     SilentFOV = 150,
     SilentTeamCheck = true,
     
-    -- ม็อดปืน (GunMod)
-    NoRecoil = false,      -- ลดแรงดีด
-    NoSpread = false,      -- กระสุนไม่ดีดออกข้าง
-    InfAmmo = false,       -- กระสุนไม่จำกัด
-    RapidFire = false,     -- ยิงเร็ว (ถ้าเซิร์ฟรองรับ)
-    FastReload = false,    -- รีโหลดเร็ว
+    -- ม็อดปืน
+    NoRecoil = false,
+    NoSpread = false,
+    InfAmmo = false,
+    FastReload = false,
+    RapidFire = false,
     
-    -- การแสดงผล (Visuals)
+    -- การแสดงผล (ESP)
     EnableESP = false,
+    ESP_Box = false,
+    ESP_Name = false,
     ESP_TeamCheck = true,
     
-    -- อื่นๆ (Misc)
+    -- รถ
+    CarTuning = false,
+    CarSpeed = 350,
+    
+    -- อื่นๆ
     AutoHeal = false,
     HealThreshold = 30,
     HealPos = Vector3.new(310.5, 12.0, 60.5)
@@ -48,7 +54,7 @@ local _CAMERA = workspace.CurrentCamera
 local _UIS = game:GetService("UserInputService")
 local _RUN = game:GetService("RunService")
 
--- // ระบบตรวจสอบสถานะตัวละคร (ไม่ล็อกคนตาย) //
+-- // ตรวจสอบว่ายังมีชีวิตอยู่ //
 local function IsAlive(plr)
     if plr and plr.Character and plr.Character:FindFirstChild("Humanoid") then
         return plr.Character.Humanoid.Health > 0
@@ -56,16 +62,16 @@ local function IsAlive(plr)
     return false
 end
 
--- // ระบบค้นหาเป้าหมาย //
+-- // ค้นหาเป้าหมายที่ใกล้ที่สุด //
 local function GetClosestTarget(fov, teamCheck)
     local target = nil
     local maxDist = fov
     for _, v in pairs(game.Players:GetPlayers()) do
         if v ~= _LP and IsAlive(v) then
             if teamCheck and v.Team == _LP.Team then continue end
-            local screenPos, onScreen = _CAMERA:WorldToViewportPoint(v.Character.HumanoidRootPart.Position)
-            if onScreen then
-                local mag = (Vector2.new(screenPos.X, screenPos.Y) - _UIS:GetMouseLocation()).Magnitude
+            local pos, vis = _CAMERA:WorldToViewportPoint(v.Character.HumanoidRootPart.Position)
+            if vis then
+                local mag = (Vector2.new(pos.X, pos.Y) - _UIS:GetMouseLocation()).Magnitude
                 if mag < maxDist then
                     maxDist = mag
                     target = v
@@ -76,44 +82,69 @@ local function GetClosestTarget(fov, teamCheck)
     return target
 end
 
--- // ระบบการทำงานหลัก (Main Loops) //
-_RUN.RenderStepped:Connect(function()
-    -- ระบบล็อกเป้า (Aimbot)
+-- // ระบบ ESP //
+local function CreateESP(plr)
+    local Box = Drawing.new("Square"); Box.Visible = false; Box.Color = Color3.fromRGB(255, 60, 60); Box.Thickness = 1
+    local Name = Drawing.new("Text"); Name.Visible = false; Name.Color = Color3.new(1, 1, 1); Name.Size = 14; Name.Center = true; Name.Outline = true
+    
+    _RUN.RenderStepped:Connect(function()
+        if getgenv().Config.EnableESP and plr and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") and IsAlive(plr) then
+            if getgenv().Config.ESP_TeamCheck and plr.Team == _LP.Team then Box.Visible = false; Name.Visible = false; return end
+            
+            local pos, vis = _CAMERA:WorldToViewportPoint(plr.Character.HumanoidRootPart.Position)
+            if vis then
+                if getgenv().Config.ESP_Box then
+                    Box.Size = Vector2.new(2000 / pos.Z, 2500 / pos.Z)
+                    Box.Position = Vector2.new(pos.X - Box.Size.X / 2, pos.Y - Box.Size.Y / 2)
+                    Box.Visible = true
+                else Box.Visible = false end
+                
+                if getgenv().Config.ESP_Name then
+                    Name.Text = plr.Name
+                    Name.Position = Vector2.new(pos.X, pos.Y - (2500 / pos.Z) / 2 - 15)
+                    Name.Visible = true
+                else Name.Visible = false end
+            else Box.Visible = false; Name.Visible = false end
+        else Box.Visible = false; Name.Visible = false end
+    end)
+end
+
+for _, v in pairs(game.Players:GetPlayers()) do if v ~= _LP then CreateESP(v) end end
+game.Players.PlayerAdded:Connect(CreateESP)
+
+-- // ระบบประมวลผลหลัก //
+_RUN.Heartbeat:Connect(function()
+    -- Aimbot Logic
     if getgenv().Config.Aimbot then
         local target = GetClosestTarget(getgenv().Config.AimFOV, true)
-        if target and IsAlive(target) and target.Character:FindFirstChild(getgenv().Config.Config.AimPart) then
-            local targetPos = target.Character[getgenv().Config.AimPart].Position
-            local lookAt = CFrame.new(_CAMERA.CFrame.Position, targetPos)
+        if target and target.Character:FindFirstChild(getgenv().Config.AimPart) then
+            local lookAt = CFrame.new(_CAMERA.CFrame.Position, target.Character[getgenv().Config.AimPart].Position)
             _CAMERA.CFrame = _CAMERA.CFrame:Lerp(lookAt, getgenv().Config.AimSmooth)
         end
     end
     
-    -- ระบบฮีลอัตโนมัติ (Auto Heal)
-    if getgenv().Config.AutoHeal then
-        local hum = (_LP.Character and _LP.Character:FindFirstChild("Humanoid"))
-        if hum and hum.Health > 0 and hum.Health < getgenv().Config.HealThreshold then
-            _LP.Character.HumanoidRootPart.CFrame = CFrame.new(getgenv().Config.HealPos)
-            getgenv().Config.AutoHeal = false
-            Rayfield:Notify({Title = "ระบบฮีล", Content = "วาร์ปไปรักษาตัวที่เตียงเรียบร้อย", Duration = 3})
+    -- Car Tuning Logic
+    if getgenv().Config.CarTuning and _LP.Character and _LP.Character:FindFirstChild("Humanoid") then
+        local seat = _LP.Character.Humanoid.SeatPart
+        if seat and seat:IsA("VehicleSeat") and seat.Throttle ~= 0 then
+            seat.Velocity = seat.CFrame.LookVector * getgenv().Config.CarSpeed
         end
     end
 end)
 
--- // ระบบม็อดปืน (Gun Mod Engines) //
-local mt = getrawmetatable(game); setreadonly(mt, false)
-local oldNamecall = mt.__namecall; local oldIndex = mt.__index
+-- // Hooking ระบบปืน //
+local mt = getrawmetatable(game); setreadonly(mt, false); local oldNC = mt.__namecall; local oldIDX = mt.__index
 
 mt.__namecall = newcclosure(function(self, ...)
     local args = {...}; local method = getnamecallmethod()
-    if not checkcaller() and getgenv().Config.SilentBullet and method == "FindPartOnRayWithIgnoreList" then
+    if getgenv().Config.SilentBullet and method == "FindPartOnRayWithIgnoreList" then
         local target = GetClosestTarget(getgenv().Config.SilentFOV, getgenv().Config.SilentTeamCheck)
         if target and IsAlive(target) then
-            local partName = getgenv().Config.SilentPart
-            args[1] = Ray.new(_CAMERA.CFrame.Position, (target.Character[partName].Position - _CAMERA.CFrame.Position).Unit * 1000)
-            return oldNamecall(self, unpack(args))
+            args[1] = Ray.new(_CAMERA.CFrame.Position, (target.Character[getgenv().Config.SilentPart].Position - _CAMERA.CFrame.Position).Unit * 1000)
+            return oldNC(self, unpack(args))
         end
     end
-    return oldNamecall(self, ...)
+    return oldNC(self, ...)
 end)
 
 mt.__index = newcclosure(function(self, idx)
@@ -124,71 +155,33 @@ mt.__index = newcclosure(function(self, idx)
         if idx == "ReloadTime" and getgenv().Config.FastReload then return 0 end
         if idx == "FireRate" and getgenv().Config.RapidFire then return 0.01 end
     end
-    return oldIndex(self, idx)
+    return oldIDX(self, idx)
 end)
 setreadonly(mt, true)
 
 -- // สร้างเมนูภาษาไทย //
 local Tab1 = Window:CreateTab("ระบบต่อสู้", 4483362458)
-Tab1:CreateSection("ตั้งค่าการล็อกเป้า (ไม่ล็อกคนตาย)")
-Tab1:CreateToggle({
-   Name = "เปิดใช้งาน ล็อกเป้า (Aimbot)",
-   CurrentValue = false,
-   Callback = function(Value) getgenv().Config.Aimbot = Value end,
-})
-Tab1:CreateDropdown({
-   Name = "จุดที่ต้องการล็อก",
-   Options = {"Head", "Torso"},
-   CurrentOption = "Head",
-   Callback = function(Option) getgenv().Config.AimPart = Option end,
-})
-
-Tab1:CreateSection("ตั้งค่ากระสุนเงียบ (Silent Bullet)")
-Tab1:CreateToggle({
-   Name = "เปิดใช้งาน กระสุนเงียบ",
-   CurrentValue = false,
-   Callback = function(Value) getgenv().Config.SilentBullet = Value end,
-})
-Tab1:CreateDropdown({
-   Name = "จุดที่กระสุนวิ่งไป",
-   Options = {"Head", "Torso"},
-   CurrentOption = "Head",
-   Callback = function(Option) getgenv().Config.SilentPart = Option end,
-})
+Tab1:CreateToggle({Name = "เปิดระบบล็อกเป้า", CurrentValue = false, Callback = function(v) getgenv().Config.Aimbot = v end})
+Tab1:CreateDropdown({Name = "เป้าหมายการล็อก", Options = {"Head", "Torso"}, CurrentOption = "Head", Callback = function(v) getgenv().Config.AimPart = v end})
+Tab1:CreateToggle({Name = "เปิดระบบกระสุนเงียบ", CurrentValue = false, Callback = function(v) getgenv().Config.SilentBullet = v end})
+Tab1:CreateDropdown({Name = "เป้าหมายกระสุนเงียบ", Options = {"Head", "Torso"}, CurrentOption = "Head", Callback = function(v) getgenv().Config.SilentPart = v end})
 
 local Tab2 = Window:CreateTab("ม็อดปืน", 4483362458)
-Tab2:CreateToggle({
-   Name = "ลดแรงดีด (No Recoil)",
-   CurrentValue = false,
-   Callback = function(Value) getgenv().Config.NoRecoil = Value end,
-})
-Tab2:CreateToggle({
-   Name = "ลดกระสุนกระจาย (No Spread)",
-   CurrentValue = false,
-   Callback = function(Value) getgenv().Config.NoSpread = Value end,
-})
-Tab2:CreateToggle({
-   Name = "กระสุนไม่จำกัด (Inf Ammo)",
-   CurrentValue = false,
-   Callback = function(Value) getgenv().Config.InfAmmo = Value end,
-})
-Tab2:CreateToggle({
-   Name = "รีโหลดเร็ว (Fast Reload)",
-   CurrentValue = false,
-   Callback = function(Value) getgenv().Config.FastReload = Value end,
-})
+Tab2:CreateToggle({Name = "ลดแรงดีด", CurrentValue = false, Callback = function(v) getgenv().Config.NoRecoil = v end})
+Tab2:CreateToggle({Name = "ลดการกระจายกระสุน", CurrentValue = false, Callback = function(v) getgenv().Config.NoSpread = v end})
+Tab2:CreateToggle({Name = "กระสุนไม่จำกัด", CurrentValue = false, Callback = function(v) getgenv().Config.InfAmmo = v end})
+Tab2:CreateToggle({Name = "รีโหลดไว", CurrentValue = false, Callback = function(v) getgenv().Config.FastReload = v end})
+Tab2:CreateToggle({Name = "ยิงเร็ว", CurrentValue = false, Callback = function(v) getgenv().Config.RapidFire = v end})
 
-local Tab3 = Window:CreateTab("ช่วยเหลืออื่นๆ", 4483362458)
-Tab3:CreateToggle({
-   Name = "วาร์ปฮีลอัตโนมัติ (เลือดน้อย)",
-   CurrentValue = false,
-   Callback = function(Value) getgenv().Config.AutoHeal = Value end,
-})
-Tab3:CreateButton({
-   Name = "วาร์ปไปเตียงพยาบาลทันที",
-   Callback = function() 
-       if _LP.Character then _LP.Character.HumanoidRootPart.CFrame = CFrame.new(getgenv().Config.HealPos) end
-   end,
-})
+local Tab3 = Window:CreateTab("การแสดงผล", 4483345998)
+Tab3:CreateToggle({Name = "เปิดระบบ ESP", CurrentValue = false, Callback = function(v) getgenv().Config.EnableESP = v end})
+Tab3:CreateToggle({Name = "แสดงกรอบ", CurrentValue = false, Callback = function(v) getgenv().Config.ESP_Box = v end})
+Tab3:CreateToggle({Name = "แสดงชื่อ", CurrentValue = false, Callback = function(v) getgenv().Config.ESP_Name = v end})
+Tab3:CreateToggle({Name = "ตรวจสอบทีม", CurrentValue = true, Callback = function(v) getgenv().Config.ESP_TeamCheck = v end})
+
+local Tab4 = Window:CreateTab("จูนรถ & ช่วยเหลือ", 4483362458)
+Tab4:CreateToggle({Name = "จูนความเร็วรถ", CurrentValue = false, Callback = function(v) getgenv().Config.CarTuning = v end})
+Tab4:CreateSlider({Name = "ความเร็วรถสูงสุด", Min = 100, Max = 1000, Default = 350, Color = Color3.fromRGB(255, 60, 60), Callback = function(v) getgenv().Config.CarSpeed = v end})
+Tab4:CreateButton({Name = "วาร์ปไปรักษาตัวที่เตียง", Callback = function() if _LP.Character then _LP.Character.HumanoidRootPart.CFrame = CFrame.new(getgenv().Config.HealPos) end end})
 
 Rayfield:LoadConfiguration()
