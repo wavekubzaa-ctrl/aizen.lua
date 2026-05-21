@@ -1,6 +1,7 @@
 --[[ 
-    BUKWAVE x GROK VOID v2.0 KAVO UI - Stable for Arceus X
-    Aimbot + Silent + Gun + Heal + ESP สีทีม + Floating Button
+    -BukwaveHub Online-
+    Status-Online for premium keys 
+    user will get specials experience
 --]]
 
 local Kavo = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
@@ -8,10 +9,10 @@ local Window = Kavo:CreateLib("BUKWAVE x GROK VOID v2.0", "DarkTheme")
 
 -- Config
 local Config = {
-    AutoShoot = false, ShootFOV = 130,
+    AutoShoot = false, ShootFOV = 120,
     SilentBullet = false, SilentPart = "Head", SilentFOV = 130, HitChance = 90,
     NoRecoil = true, NoSpread = true, InfAmmo = true, FastReload = true, RapidFire = true, FireMultiplier = 2.5,
-    EnableESP = true, MaxDist = 1500,
+    EnableESP = true, MaxDist = 2000,
     CarTuning = false, CarSpeed = 500, CarTurbo = false, CarGod = true,
     AutoHeal = false, HealThreshold = 19, HealPos = Vector3.new(310.5, 12.0, 60.5)
 }
