@@ -1,0 +1,268 @@
+--[[
+    PROJECT: GUNFIGHT ARENA - TACTICAL HELPER
+    FEATURES: Smooth Aimbot (Camera Track), Visuals (ESP), Team Check
+    UI: Custom Premium Modern Theme (Rayfield UI - Thai Version)
+--]]
+
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Window = Rayfield:CreateWindow({
+   Name = "Gunfight Arena - Tactical Helper v1.0",
+   LoadingTitle = "LOADING TACTICAL SYSTEM",
+   LoadingSubtitle = "เพื่อความสมูทและแม่นยำสูง",
+   ConfigurationSaving = {
+      Enabled = false
+   }
+})
+
+-- // ค่าตั้งค่าเริ่มต้น //
+getgenv().TacticalConfig = {
+    -- หมวดช่วยเหลือการยิง (Aimbot)
+    AimbotEnabled = false,
+    AimPart = "Head",
+    AimFOV = 120,
+    Smoothness = 0.06, -- ความเร็วในการแพลนกล้อง (ยิ่งน้อยยิ่งเนียน)
+    TeamCheck = true,
+    DeadCheck = true,
+    
+    -- หมวดแสดงผล (ESP)
+    ESPEnabled = false,
+    ESP_Box = false,
+    ESP_Name = false,
+    ESP_TeamCheck = true,
+}
+
+local Players = game:GetService("Players")
+local LP = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+local UIS = game:GetService("UserInputService")
+local RS = game:GetService("RunService")
+
+-- // ฟังก์ชันตรวจสอบว่ายังมีชีวิตอยู่หรือไม่ //
+local function IsAlive(plr)
+    local char = plr.Character
+    if char and char:FindFirstChild("Humanoid") and char:FindFirstChild("HumanoidRootPart") then
+        if getgenv().TacticalConfig.DeadCheck and char.Humanoid.Health <= 0 then
+            return false
+        end
+        return true
+    end
+    return false
+end
+
+-- // ฟังก์ชันค้นหาเป้าหมายที่อยู่ใกล้กึ่งกลางจอมากที่สุดใน FOV //
+local function GetClosestTarget()
+    local target = nil
+    local maxDist = getgenv().TacticalConfig.AimFOV
+    
+    for _, v in ipairs(Players:GetPlayers()) do
+        if v ~= LP and IsAlive(v) then
+            -- ระบบคัดกรองทีม (Team Check)
+            if getgenv().TacticalConfig.TeamCheck and v.Team == LP.Team then continue end
+            
+            local part = v.Character:FindFirstChild(getgenv().TacticalConfig.AimPart)
+            if part then
+                local screenPos, onScreen = Camera:WorldToViewportPoint(part.Position)
+                if onScreen then
+                    local mag = (Vector2.new(screenPos.X, screenPos.Y) - UIS:GetMouseLocation()).Magnitude
+                    if mag < maxDist then
+                        maxDist = mag
+                        target = v
+                    end
+                end
+            end
+        end
+    end
+    return target
+end
+
+-- // ระบบ ESP (วาดเฟรมสด) //
+local ESP_Storage = {}
+
+local function CreateESP(plr)
+    if plr == LP then return end
+    
+    local d = {}
+    d.Box = Drawing.new("Square")
+    d.Box.Thickness = 1.5
+    d.Box.Filled = false
+    d.Box.Visible = false
+    
+    d.Name = Drawing.new("Text")
+    d.Name.Size = 13
+    d.Name.Center = true
+    d.Name.Outline = true
+    d.Name.Visible = false
+    
+    ESP_Storage[plr] = d
+end
+
+local function RemoveESP(plr)
+    if ESP_Storage[plr] then
+        for _, obj in pairs(ESP_Storage[plr]) do
+            obj:Remove()
+        end
+        ESP_Storage[plr] = nil
+    end
+end
+
+-- อัปเดตตำแหน่ง ESP บนหน้าจอ
+RS.RenderStepped:Connect(function()
+    for plr, d in pairs(ESP_Storage) do
+        if getgenv().TacticalConfig.ESPEnabled and IsAlive(plr) then
+            -- เช็คคัดกรองทีมใน ESP
+            if getgenv().TacticalConfig.ESP_TeamCheck and plr.Team == LP.Team then
+                d.Box.Visible = false
+                d.Name.Visible = false
+                continue
+            end
+            
+            local root = plr.Character.HumanoidRootPart
+            local screenPos, onScreen = Camera:WorldToViewportPoint(root.Position)
+            
+            if onScreen then
+                local height = math.clamp(1000 / screenPos.Z, 30, 250)
+                local width = height * 0.6
+                local col = (plr.Team == LP.Team) and Color3.new(0, 1, 0) or Color3.new(1, 0.2, 0.2)
+                
+                -- อัปเดตสี่เหลี่ยมรอบตัว (Box)
+                if getgenv().TacticalConfig.ESP_Box then
+                    d.Box.Size = Vector2.new(width, height)
+                    d.Box.Position = Vector2.new(screenPos.X - width / 2, screenPos.Y - height / 2)
+                    d.Box.Color = col
+                    d.Box.Visible = true
+                else
+                    d.Box.Visible = false
+                end
+                
+                -- อัปเดตแสดงชื่อ (Name)
+                if getgenv().TacticalConfig.ESP_Name then
+                    d.Name.Text = plr.Name .. " [" .. math.floor(plr.Character.Humanoid.Health) .. " HP]"
+                    d.Name.Position = Vector2.new(screenPos.X, screenPos.Y - height / 2 - 18)
+                    d.Name.Color = col
+                    d.Name.Visible = true
+                else
+                    d.Name.Visible = false
+                end
+            else
+                d.Box.Visible = false
+                d.Name.Visible = false
+            end
+        else
+            d.Box.Visible = false
+            d.Name.Visible = false
+        end
+    end
+end)
+
+-- โหลดรายชื่อผู้เล่นเพื่อเปิด ESP
+for _, v in ipairs(Players:GetPlayers()) do CreateESP(v) end
+Players.PlayerAdded:Connect(CreateESP)
+Players.PlayerRemoving:Connect(RemoveESP)
+
+-- // ระบบประมวลผลหมุนกล้องติดตาม (Aimbot Loop) //
+RS.RenderStepped:Connect(function()
+    if getgenv().TacticalConfig.AimbotEnabled then
+        local target = GetClosestTarget()
+        if target and target.Character:FindFirstChild(getgenv().TacticalConfig.AimPart) then
+            local targetPos = target.Character[getgenv().TacticalConfig.AimPart].Position
+            local lookAt = CFrame.lookAt(Camera.CFrame.Position, targetPos)
+            
+            -- ปรับมุมกล้องให้หันหน้าตามแบบสมูท (Lerp) เพื่อความธรรมชาติ
+            Camera.CFrame = Camera.CFrame:Lerp(lookAt, getgenv().TacticalConfig.Smoothness)
+        end
+    end
+end)
+
+-- // สร้างหน้าต่างการควบคุม (UI Tabs) //
+
+-- 🎯 Tab ที่ 1: ระบบเล็งยิง (Combat)
+local TabCombat = Window:CreateTab("🎯 ระบบเล็งยิง", 4483362458)
+TabCombat:CreateSection("ระบบช่วยเหลือมุมกล้อง (Camera Aimbot)")
+
+TabCombat:CreateToggle({
+   Name = "เปิดใช้งานระบบล็อกเป้า (Aimbot)",
+   CurrentValue = getgenv().TacticalConfig.AimbotEnabled,
+   Callback = function(Value) getgenv().TacticalConfig.AimbotEnabled = Value end,
+})
+
+TabCombat:CreateDropdown({
+   Name = "ชิ้นส่วนที่ต้องการล็อกเป้า",
+   Options = {"Head", "HumanoidRootPart"},
+   CurrentOption = getgenv().TacticalConfig.AimPart,
+   Callback = function(Option) getgenv().TacticalConfig.AimPart = Option end,
+})
+
+TabCombat:CreateSlider({
+   Name = "ความหน่วงกล้อง (Smoothness) *ยิ่งน้อยยิ่งเนียน*",
+   Min = 1,
+   Max = 30,
+   Default = 6,
+   Color = Color3.fromRGB(255, 60, 60),
+   Callback = function(Value) getgenv().TacticalConfig.Smoothness = Value / 100 end,
+})
+
+TabCombat:CreateSlider({
+   Name = "ระยะการทำงาน (Aim FOV Limit)",
+   Min = 50,
+   Max = 360,
+   Default = 120,
+   Color = Color3.fromRGB(255, 100, 100),
+   Callback = function(Value) getgenv().TacticalConfig.AimFOV = Value end,
+})
+
+TabCombat:CreateSection("เงื่อนไขการทำงาน")
+
+TabCombat:CreateToggle({
+   Name = "ไม่ล็อกผู้เล่นร่วมทีม (Team Check)",
+   CurrentValue = getgenv().TacticalConfig.TeamCheck,
+   Callback = function(Value) getgenv().TacticalConfig.TeamCheck = Value end,
+})
+
+TabCombat:CreateToggle({
+   Name = "ไม่ล็อกคนที่ตายแล้ว (Dead Check)",
+   CurrentValue = getgenv().TacticalConfig.DeadCheck,
+   Callback = function(Value) getgenv().TacticalConfig.DeadCheck = Value end,
+})
+
+-- 👻 Tab ที่ 2: ระบบแสดงผล (Visuals / ESP)
+local TabESP = Window:CreateTab("👻 ระบบช่วยมอง", 4483345998)
+TabESP:CreateSection("แสดงตำแหน่งผู้เล่น (ESP)")
+
+TabESP:CreateToggle({
+   Name = "เปิดใช้งานระบบ ESP",
+   CurrentValue = getgenv().TacticalConfig.ESPEnabled,
+   Callback = function(Value) getgenv().TacticalConfig.ESPEnabled = Value end,
+})
+
+TabESP:CreateToggle({
+   Name = "แสดงกรอบผู้เล่น (ESP Box)",
+   CurrentValue = getgenv().TacticalConfig.ESP_Box,
+   Callback = function(Value) getgenv().TacticalConfig.ESP_Box = Value end,
+})
+
+TabESP:CreateToggle({
+   Name = "แสดงชื่อและพลังชีวิต (ESP Name)",
+   CurrentValue = getgenv().TacticalConfig.ESP_Name,
+   Callback = function(Value) getgenv().TacticalConfig.ESP_Name = Value end,
+})
+
+TabESP:CreateToggle({
+   Name = "ไม่แสดงผลผู้เล่นทีมเดียวกัน (ESP Team Check)",
+   CurrentValue = getgenv().TacticalConfig.ESP_TeamCheck,
+   Callback = function(Value) getgenv().TacticalConfig.ESP_TeamCheck = Value end,
+})
+
+-- ⚙️ Tab ที่ 3: การตั้งค่าทั่วไป (Misc)
+local TabMisc = Window:CreateTab("⚙️ ตั้งค่าทั่วไป", 4483362458)
+TabMisc:CreateButton({
+   Name = "ทำลายหน้าจอเมนู (Destroy UI)",
+   Callback = function() Rayfield:Destroy() end,
+})
+
+Rayfield:LoadConfiguration()
+Rayfield:Notify({
+    Title = "Tactical Ready", 
+    Content = "โหลดระบบช่วยเล่นและตั้งค่า Gunfight Arena เรียบร้อยแล้ว!", 
+    Duration = 5
+})
